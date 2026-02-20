@@ -1,4 +1,374 @@
+#!/bin/bash
 
+#===============================================================================
+# LICENSE HEADER FRAMEWORK (LHF)
+# Unified .deont configuration management and license application
+# Version: 1.0.0
+#===============================================================================
+
+set -o pipefail
+
+readonly SCRIPT_NAME="lhf"
+readonly VERSION="1.0.0"
+readonly DEONT_VERSION="1.0"
+readonly DEFAULT_CONFIG_DIR="$HOME/.config/lhf"
+readonly TEMPLATES_DIR="$DEFAULT_CONFIG_DIR/templates"
+readonly TEMP_DIR="/tmp/lhf_$$"
+
+# Color codes
+declare -A COLORS=(
+    [reset]='\033[0m'
+    [bold]='\033[1m'
+    [red]='\033[0;31m'
+    [green]='\033[0;32m'
+    [yellow]='\033[0;33m'
+    [blue]='\033[0;34m'
+    [magenta]='\033[0;35m'
+    [cyan]='\033[0;36m'
+)
+
+# Comment styles for different languages
+declare -A COMMENT_STYLES=(
+    ['sh']='hash' ['bash']='hash' ['zsh']='hash' ['py']='hash' ['rb']='hash'
+    ['pl']='hash' ['yaml']='hash' ['yml']='hash' ['conf']='hash'
+    ['dockerfile']='hash' ['makefile']='hash'
+    ['c']='c_style' ['cpp']='c_style' ['h']='c_style' ['hpp']='c_style'
+    ['java']='c_style' ['js']='c_style' ['ts']='c_style' ['css']='c_style'
+    ['scss']='c_style' ['go']='c_style' ['rs']='c_style' ['swift']='c_style'
+    ['kt']='c_style'
+    ['html']='html_style' ['xml']='html_style' ['svg']='html_style' ['md']='html_style'
+    ['lua']='lua_style' ['sql']='sql_style' ['vim']='vim_style'
+)
+
+#-------------------------------------------------------------------------------
+# UTILITY FUNCTIONS
+#-------------------------------------------------------------------------------
+
+print_banner() {
+    echo -e "${COLORS[cyan]}"
+    cat << 'EOF'
+    ╔═══════════════════════════════════════════════════════════════╗
+    ║           📜  LICENSE HEADER FRAMEWORK (LHF)  📜              ║
+    ║              Unified .deont Configuration Manager             ║
+    ╚═══════════════════════════════════════════════════════════════╝
+EOF
+    echo -e "${COLORS[reset]}"
+}
+
+print_error() { echo -e "${COLORS[red]}[ERROR]${COLORS[reset]} $1" >&2; }
+print_success() { echo -e "${COLORS[green]}[SUCCESS]${COLORS[reset]} $1"; }
+print_info() { echo -e "${COLORS[blue]}[INFO]${COLORS[reset]} $1"; }
+print_warning() { echo -e "${COLORS[yellow]}[WARNING]${COLORS[reset]} $1"; }
+print_prompt() { echo -e "${COLORS[magenta]}➜${COLORS[reset]} ${COLORS[bold]}$1${COLORS[reset]}"; }
+
+check_dependencies() {
+    print_info "Checking dependencies..."
+    if ! command -v jq &> /dev/null; then
+        print_error "Missing required dependency: jq"
+        print_info "Install with: sudo apt-get install jq"
+        exit 1
+    fi
+    print_success "All dependencies satisfied"
+}
+
+create_temp_dir() {
+    mkdir -p "$TEMP_DIR"
+    if [[ ! -d "$TEMP_DIR" ]]; then
+        print_error "Failed to create temp directory"
+        exit 1
+    fi
+    trap 'rm -rf "$TEMP_DIR"' EXIT
+}
+
+#-------------------------------------------------------------------------------
+# CORE FUNCTIONS
+#-------------------------------------------------------------------------------
+
+get_comment_style() {
+    local extension="$1"
+    echo "${COMMENT_STYLES[$extension]:-hash}"
+}
+
+format_comment_block() {
+    local style="$1"
+    local content="$2"
+    local width=78
+    local border
+    border=$(printf '=%.0s' $(seq 1 $((width-2))))
+    
+    case "$style" in
+        'hash')
+            echo "$content" | while IFS= read -r line; do printf "# %s\n" "$line"; done
+            ;;
+        'c_style')
+            echo "/*${border}*/"
+            echo "$content" | while IFS= read -r line; do printf " * %-76s *\n" "$line"; done
+            echo "/*${border}*/"
+            ;;
+        'html_style')
+            echo "<!--"
+            echo "$content" | while IFS= read -r line; do echo "  $line"; done
+            echo "-->"
+            ;;
+        'lua_style')
+            echo "--[["
+            echo "$content" | while IFS= read -r line; do echo "  $line"; done
+            echo "--]]"
+            ;;
+        'sql_style')
+            echo "/*"
+            echo "$content" | while IFS= read -r line; do echo " * $line"; done
+            echo " */"
+            ;;
+        'vim_style')
+            echo "\" $(echo "$content" | tr '\n' ' ')"
+            ;;
+        *)
+            echo "$content"
+            ;;
+    esac
+}
+
+generate_license_text() {
+    local config_file="$1"
+    local format="${2:-text}"
+    
+    if ! jq empty "$config_file" 2>/dev/null; then
+        print_error "Invalid JSON configuration file: $config_file"
+        return 1
+    fi
+    
+    local author license_type license_text copyright date_issued license_link year logo
+    
+    author=$(jq -r '.author // .authors // empty' "$config_file")
+    license_type=$(jq -r '.license_type // .["license type"] // empty' "$config_file")
+    license_text=$(jq -r '.license_text // .["licence text"] // empty' "$config_file")
+    copyright=$(jq -r '.copyright_signs // .["copyright signs"] // "©"' "$config_file")
+    date_issued=$(jq -r '.date_license_issued // .["date license issued"] // empty' "$config_file")
+    license_link=$(jq -r '.license_link // .["license link"] // empty' "$config_file")
+    year=$(jq -r '.year_of_licensing // .["year of licensing"] // empty' "$config_file")
+    logo=$(jq -r '.logo // empty' "$config_file")
+    
+    local missing=()
+    [[ -z "$author" ]] && missing+=("author(s)")
+    [[ -z "$license_type" ]] && missing+=("license type")
+    [[ -z "$license_text" ]] && missing+=("license text")
+    [[ -z "$copyright" ]] && missing+=("copyright signs")
+    [[ -z "$date_issued" ]] && missing+=("date license issued")
+    [[ -z "$license_link" ]] && missing+=("license link")
+    [[ -z "$year" ]] && missing+=("year of licensing")
+    
+    local lc_license
+    lc_license=$(echo "$license_type" | tr '[:upper:]' '[:lower:]')
+    case "$lc_license" in
+        *"creative commons"*|"cc "*|"cc-"*)
+            [[ -z "$logo" ]] && missing+=("logo (mandatory for Creative Commons)")
+            ;;
+    esac
+    
+    if [[ ${#missing[@]} -gt 0 ]]; then
+        print_error "Missing mandatory fields in $config_file: ${missing[*]}"
+        return 1
+    fi
+    
+    local output=""
+    case "$format" in
+        'text')
+            output+="================================================================================\n"
+            output+="  LICENSE INFORMATION\n"
+            output+="================================================================================\n"
+            output+="  Author(s):        $author\n"
+            output+="  License Type:     $license_type\n"
+            output+="  Copyright:        $copyright $year $author\n"
+            output+="  Date Issued:      $date_issued\n"
+            output+="  License Link:     $license_link\n"
+            output+="================================================================================\n\n"
+            output+="$license_text\n"
+            [[ -n "$logo" ]] && output+="\n  Logo: $logo\n"
+            ;;
+        'json')
+            output=$(jq -n \
+                --arg author "$author" \
+                --arg license_type "$license_type" \
+                --arg license_text "$license_text" \
+                --arg copyright "$copyright" \
+                --arg date_issued "$date_issued" \
+                --arg license_link "$license_link" \
+                --arg year "$year" \
+                --arg logo "$logo" \
+                '{
+                    author: $author,
+                    license_type: $license_type,
+                    license_text: $license_text,
+                    copyright: "\($copyright) \($year) \($author)",
+                    date_issued: $date_issued,
+                    license_link: $license_link,
+                    year: $year,
+                    logo: $logo
+                }')
+            ;;
+    esac
+    
+    echo -e "$output"
+}
+
+#-------------------------------------------------------------------------------
+# INTERACTIVE MODE - Creates .deont file
+#-------------------------------------------------------------------------------
+
+interactive_mode() {
+    local output_file="${1:-./.deont}"
+    local advanced_mode="${2:-false}"
+    
+    print_banner
+    print_info "Creating .deont configuration file: $output_file"
+    print_info "Advanced Mode: $advanced_mode"
+    echo
+    
+    local json_data="{"
+    
+    # PART 1: MANDATORY FIELDS
+    print_info "${COLORS[bold]}Part 1: Mandatory License Information${COLORS[reset]}"
+    echo "─────────────────────────────────────────"
+    
+    # Author
+    local author=""
+    while [[ -z "$author" ]]; do
+        print_prompt "Enter author name(s):"
+        read -r author
+        [[ -z "$author" ]] && print_warning "Author is required"
+    done
+    
+    # License type
+    local license_type=""
+    while [[ -z "$license_type" ]]; do
+        print_prompt "Enter license type (MIT, GPL-3.0, Apache-2.0, CC-BY-NC-ND, etc.):"
+        read -r license_type
+        [[ -z "$license_type" ]] && print_warning "License type is required"
+    done
+    
+    # License text
+    local license_text=""
+    while [[ -z "$license_text" ]]; do
+        print_prompt "Enter full license text (press Ctrl+D when done):"
+        license_text=$(cat)
+        [[ -z "$license_text" ]] && print_warning "License text is required"
+    done
+    
+    # Copyright symbol
+    print_prompt "Enter copyright symbol (default: ©):"
+    read -r copyright
+    [[ -z "$copyright" ]] && copyright="©"
+    
+    # Date issued
+    local date_issued=""
+    while [[ ! "$date_issued" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]; do
+        print_prompt "Enter date issued (YYYY-MM-DD):"
+        read -r date_issued
+        [[ ! "$date_issued" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]] && print_warning "Use format YYYY-MM-DD"
+    done
+    
+    # License link
+    local license_link=""
+    while [[ -z "$license_link" ]]; do
+        print_prompt "Enter license URL:"
+        read -r license_link
+        [[ -z "$license_link" ]] && print_warning "License link is required"
+    done
+    
+    # Year
+    local year=""
+    while [[ ! "$year" =~ ^[0-9]{4}$ ]]; do
+        print_prompt "Enter year of licensing (YYYY):"
+        read -r year
+        [[ ! "$year" =~ ^[0-9]{4}$ ]] && print_warning "Use format YYYY"
+    done
+    
+    # Logo (check if CC license)
+    local logo=""
+    local lc_license
+    lc_license=$(echo "$license_type" | tr '[:upper:]' '[:lower:]')
+    case "$lc_license" in
+        *"creative commons"*|"cc "*|"cc-"*)
+            print_info "Creative Commons license detected - logo is mandatory"
+            while [[ -z "$logo" ]]; do
+                print_prompt "Enter logo URL:"
+                read -r logo
+                [[ -z "$logo" ]] && print_warning "Logo is required for Creative Commons"
+            done
+            ;;
+        *)
+            print_prompt "Enter logo URL (optional, press Enter to skip):"
+            read -r logo
+            ;;
+    esac
+    
+    # Escape for JSON
+    author=$(echo "$author" | sed 's/\\/\\\\/g; s/"/\\"/g')
+    license_type=$(echo "$license_type" | sed 's/\\/\\\\/g; s/"/\\"/g')
+    license_text=$(echo "$license_text" | sed 's/\\/\\\\/g; s/"/\\"/g' | tr '\n' ' ' | sed 's/  */ /g')
+    copyright=$(echo "$copyright" | sed 's/\\/\\\\/g; s/"/\\"/g')
+    license_link=$(echo "$license_link" | sed 's/\\/\\\\/g; s/"/\\"/g')
+    [[ -n "$logo" ]] && logo=$(echo "$logo" | sed 's/\\/\\\\/g; s/"/\\"/g')
+    
+    json_data+="\"author\":\"$author\""
+    json_data+=",\"license_type\":\"$license_type\""
+    json_data+=",\"license_text\":\"$license_text\""
+    json_data+=",\"copyright_signs\":\"$copyright\""
+    json_data+=",\"date_license_issued\":\"$date_issued\""
+    json_data+=",\"license_link\":\"$license_link\""
+    json_data+=",\"year_of_licensing\":\"$year\""
+    [[ -n "$logo" ]] && json_data+=",\"logo\":\"$logo\""
+    
+    # PART 2: ADVANCED FIELDS
+    if [[ "$advanced_mode" == "true" ]]; then
+        echo
+        print_info "${COLORS[bold]}Part 2: Advanced Documentation Fields${COLORS[reset]}"
+        echo "─────────────────────────────────────────"
+        
+        local ai_used=""
+        while true; do
+            print_prompt "Was AI used in the creation of this work? (Yes/No):"
+            read -r ai_used
+            ai_used=$(echo "$ai_used" | tr '[:upper:]' '[:lower:]')
+            case "$ai_used" in
+                'yes'|'y'|'no'|'n') break ;;
+                *) print_warning "Please answer Yes or No" ;;
+            esac
+        done
+        
+        [[ "$ai_used" =~ ^(yes|y)$ ]] && json_data+=",\"ai_used\":true" || json_data+=",\"ai_used\":false"
+        
+        if [[ "$ai_used" =~ ^(yes|y)$ ]]; then
+            echo
+            print_info "Select AI programming technique:"
+            echo "  1) MCP (Model Context Protocol)"
+            echo "  2) Prompting"
+            echo "  3) Chain Of Prompt MCP"
+            echo "  4) Chains of prompt"
+            echo "  5) Mixed"
+            echo "  6) Other (specify)"
+            
+            local ai_technique=""
+            while [[ -z "$ai_technique" ]]; do
+                print_prompt "Enter choice (1-6):"
+                read -r choice
+                case "$choice" in
+                    1) ai_technique="MCP" ;;
+                    2) ai_technique="Prompting" ;;
+                    3) ai_technique="Chain Of Prompt MCP" ;;
+                    4) ai_technique="Chains of prompt" ;;
+                    5) ai_technique="Mixed" ;;
+                    6) 
+                        print_prompt "Please specify the technique:"
+                        read -r ai_technique
+                        ;;
+                    *) print_warning "Invalid choice" ;;
+                esac
+            done
+            ai_technique=$(echo "$ai_technique" | sed 's/\\/\\\\/g; s/"/\\"/g')
+            json_data+=",\"ai_technique\":\"$ai_technique\""
+        fi
         
         echo
         print_prompt "Enter manager notes (max 10000 chars, press Ctrl+D when done):"
@@ -500,3 +870,11 @@ main() {
             show_help
             ;;
             
+        *)
+            print_error "Unknown command: $command"
+            exit 1
+            ;;
+    esac
+}
+
+main "$@"
