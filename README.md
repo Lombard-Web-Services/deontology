@@ -4,6 +4,7 @@
 
 **Author:** Thibaut LOMBARD\
 **Repository:** https://github.com/Lombard-Web-Services/deontology/
+
 **License:** MIT © 2026 Thibaut LOMBARD
 
 
