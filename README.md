@@ -1,62 +1,168 @@
-# License Header Framework (LHF) – Cadre déontologique pour créations honnêtes
+# License Header Framework (LHF)
 
-Auteur : Thibaut LOMBARD
-Version : 1.0.1
-Repo : https://github.com/Lombard-Web-Services/deontology/
+### Ethical Licensing & Transparency Framework
 
-## Manifeste
+**Author:** Thibaut LOMBARD\
+**Version:** 1.0.1\
+**Repository:** https://github.com/Lombard-Web-Services/deontology/\
+**License:** MIT © 2026 Thibaut LOMBARD
 
-Nous vivons aujourd’hui dans un monde où l’intelligence artificielle s’impose progressivement dans tous les secteurs. Cette expansion rend chaque jour plus difficile l’identification des véritables acteurs qui conçoivent, réalisent et diffusent les projets ou les œuvres.
+------------------------------------------------------------------------
 
-Il est naturel de refuser que nos compétences, notre savoir-faire ou nos valeurs fondamentales soient remplacés ou dévoyés par des systèmes ou des individus moins compétents. Nous faisons face à une perte de repères : il devient de plus en plus ardu de savoir qui fait quoi et dans quelles intentions.
+## Executive Summary
 
-Mon constat personnel est clair : il devient de plus en plus difficile de distinguer une personne honnête d’un imposteur. Il est donc urgent de renouer avec l’honnêteté intellectuelle.
+The **License Header Framework (LHF)** is a professional-grade Bash
+utility designed to enforce ethical clarity, authorship transparency,
+and structured licensing across software projects.
 
-C’est dans cet esprit que j’ai développé LHF — une application Bash capable de générer des fichiers .deont et d’ajouter automatiquement les licences logicielles appropriées à chaque projet.
+As artificial intelligence and automated systems increasingly
+participate in content and software production, identifying
+responsibility and authorship has become more complex. LHF establishes a
+verifiable, structured, and auditable framework to document:
 
-Cette approche vise à garantir la transparence et la traçabilité des créations, en consignant de manière fiable et vérifiable :
-Qui • Quoi • Quand • Où • Pourquoi • Comment • À quelle heure précise • Avec quels outils • Avec qui • Sous quelle licence
+> **Who • What • When • Where • Why • How • Exact Timestamp • Tools Used
+> • Contributors • Applied License**
 
-Ce projet établit un cadre de travail déontologique clair et contrôlable, afin de restaurer la confiance, la responsabilité et la transparence au cœur des processus de création et de décision technologiques.
+LHF promotes intellectual honesty, traceability, and professional
+accountability in modern development environments.
 
-J’espère que cette initiative résonnera jusqu’aux plus hautes sphères, rappelant que l’éthique et la rigueur doivent toujours précéder la performance et la facilité.
+------------------------------------------------------------------------
 
-## Fonctionnalités
+## Manifesto
 
-• Création interactive ou rapide d’un fichier .deont (JSON)
-• Support de toutes les licences (MIT, GPL, Apache, CC, etc.)
-• Ajout automatique d’en-têtes de licence adaptés au langage (Python, JS, C, HTML, etc.)
-• Mode récursif ou dossier unique
-• Génération de rapport LaTeX + PDF professionnel
-• Mode avancé : déclaration d’usage d’IA + rôle du créateur + notes manager
-• Détection automatique des fichiers déjà licenciés
-• Couleurs terminal, messages clairs, gestion d’erreurs robuste
+We are living in an era where artificial intelligence is progressively establishing itself across all sectors. This expansion makes it increasingly difficult to identify the true actors who design, build, and publish projects or works.
 
-## Points forts du code
+It is legitimate to refuse that our skills, expertise, or core values be replaced or distorted by systems or individuals lacking competence or integrity. We are facing a loss of reference points: it is becoming more and more challenging to determine who does what, and with what intention.
 
-• 100 % Bash portable + jq uniquement
-• set -o pipefail + échappement sécurisé JSON/LaTeX
-• Support de plus de 20 langages de commentaires
-• Trap de nettoyage automatique des fichiers temporaires
-• Code modulaire et facilement extensible
+My personal observation is clear: it is becoming increasingly difficult to distinguish an honest individual from an impostor. It is therefore urgent to restore intellectual honesty.
 
-## Utilisation
+It is in this spirit that I developed **LHF** — a Bash application capable of generating `.deont` files and automatically adding the appropriate software licenses to each project.
 
-# Création interactive complète
+This approach aims to guarantee transparency and traceability by reliably and verifiably documenting:
+
+> **Who • What • When • Where • Why • How • Exact Time • With Which Tools • With Whom • Under Which License**
+
+This project establishes a clear and auditable deontological working framework, designed to restore trust, responsibility, and transparency at the core of technological creation and decision-making processes.
+
+I sincerely hope that this initiative will resonate even at the highest levels, reminding us that ethics and rigor must always precede performance and convenience.
+
+---
+
+## Core Features
+
+-   Interactive or rapid creation of `.deont` metadata files (JSON
+    format)
+-   Support for all major licenses (MIT, GPL, Apache, BSD, Creative
+    Commons, etc.)
+-   Automatic insertion of language-adapted license headers (Python,
+    JavaScript, C, C++, HTML, Shell, and 20+ more)
+-   Recursive or single-directory processing modes
+-   Professional LaTeX report generation with optional PDF export
+-   Advanced mode including:
+    -   AI usage declaration
+    -   Creator role specification
+    -   Compliance / managerial notes
+-   Automatic detection of previously licensed files
+-   Colored terminal output and robust error handling
+
+------------------------------------------------------------------------
+
+## Technical Architecture
+
+-   100% Portable Bash (POSIX-friendly)
+-   Single external dependency: `jq`
+-   `set -o pipefail` enabled for strict error propagation
+-   Secure JSON and LaTeX escaping
+-   Support for 20+ comment syntaxes
+-   Automatic temporary file cleanup via trap handlers
+-   Modular, maintainable, and extensible codebase
+
+------------------------------------------------------------------------
+
+## Installation
+
+``` bash
+git clone https://github.com/Lombard-Web-Services/deontology.git
+cd deontology
+chmod +x lhf.sh
+```
+
+Install dependency:
+
+``` bash
+sudo apt install jq
+```
+
+------------------------------------------------------------------------
+
+## Usage
+
+### Full Interactive Creation
+
+``` bash
 ./lhf.sh create
+```
 
-# Création interactive avec champs avancés (IA, rôle, notes)
+### Advanced Interactive Mode
+
+``` bash
 ./lhf.sh create --advanced
+```
 
-# Création rapide en une ligne
+### One-Line Quick Creation
+
+``` bash
 ./lhf.sh create -a "Thibaut LOMBARD" -l "MIT" -t "@LICENSE.txt" -y 2026
+```
 
-# Appliquer les headers
+### Apply License Headers
+
+Recursive mode:
+
+``` bash
 ./lhf.sh apply -e js -r
+```
+
+Specific directory:
+
+``` bash
 ./lhf.sh apply -e py --dir ./src
+```
 
-# Générer le PDF
+### Generate Professional Report (PDF Only)
+
+``` bash
 ./lhf.sh report --pdf-only
+```
 
-## Licence
-MIT License © 2026 Thibaut LOMBARD
+------------------------------------------------------------------------
+
+## Governance Philosophy
+
+LHF is not merely a licensing script.
+
+It is a **deontological governance layer** for software creation.\
+Its objectives are to:
+
+-   Reinforce ethical responsibility in development workflows
+-   Clarify human and AI contributions
+-   Ensure auditability and long-term traceability
+-   Elevate professional standards in digital production
+
+Technology must remain accountable. Automation must not replace
+integrity.
+
+------------------------------------------------------------------------
+
+## Contributing
+
+Contributions are welcome, provided they align with the ethical and
+transparency principles of the framework.
+
+------------------------------------------------------------------------
+
+## License
+
+Distributed under the MIT License.
+
+© 2026 Thibaut LOMBARD
