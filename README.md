@@ -6,7 +6,7 @@
 **Repository:** https://github.com/Lombard-Web-Services/deontology/
 **License:** MIT © 2026 Thibaut LOMBARD
 
-------------------------------------------------------------------------
+
 
 ## Executive Summary
 
@@ -25,7 +25,7 @@ verifiable, structured, and auditable framework to document:
 LHF promotes intellectual honesty, traceability, and professional
 accountability in modern development environments.
 
-------------------------------------------------------------------------
+
 
 ## Manifesto
 
@@ -64,7 +64,7 @@ I sincerely hope that this initiative will resonate even at the highest levels, 
 -   Automatic detection of previously licensed files
 -   Colored terminal output and robust error handling
 
-------------------------------------------------------------------------
+
 
 ## Technical Architecture
 
@@ -76,7 +76,7 @@ I sincerely hope that this initiative will resonate even at the highest levels, 
 -   Automatic temporary file cleanup via trap handlers
 -   Modular, maintainable, and extensible codebase
 
-------------------------------------------------------------------------
+
 
 ## Installation
 
@@ -92,7 +92,7 @@ Install dependency:
 sudo apt install jq
 ```
 
-------------------------------------------------------------------------
+
 
 ## Usage
 
@@ -134,7 +134,7 @@ Specific directory:
 ./lhf.sh report --pdf-only
 ```
 
-------------------------------------------------------------------------
+
 
 ## Governance Philosophy
 
@@ -151,14 +151,14 @@ Its objectives are to:
 Technology must remain accountable. Automation must not replace
 integrity.
 
-------------------------------------------------------------------------
+
 
 ## Contributing
 
 Contributions are welcome, provided they align with the ethical and
 transparency principles of the framework.
 
-------------------------------------------------------------------------
+
 
 ## License
 
