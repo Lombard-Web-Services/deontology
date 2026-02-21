@@ -19,6 +19,6 @@
   },
   "ai_used": true,
   "ai_technique": "Prompting",
-  "manager_note": "I used KIMI to adjust my tasklist, i reviewed the code , asked chatgpt, grok to create the readme, MOULT AI for Orcherstration and perplexity for the manifesto.",
+  "manager_note": "I used KIMI to adjust my tasklist, i reviewed the code , asked chatgpt to do the readme, grok to create the fingerprint, MOULT-AI for Orcherstration and perplexity for the manifesto.",
   "creator_role": "Project Manager and Software Architect , Machine learning engineer"
 }
