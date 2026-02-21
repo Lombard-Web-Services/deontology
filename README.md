@@ -3,8 +3,7 @@
 ### Ethical Licensing & Transparency Framework
 
 **Author:** Thibaut LOMBARD\
-**Version:** 1.0.1\
-**Repository:** https://github.com/Lombard-Web-Services/deontology/\
+**Repository:** https://github.com/Lombard-Web-Services/deontology/
 **License:** MIT © 2026 Thibaut LOMBARD
 
 ------------------------------------------------------------------------
