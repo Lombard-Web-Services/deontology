@@ -6,7 +6,7 @@
 **Dépôt :** [https://github.com/Lombard-Web-Services/deontology/](https://github.com/Lombard-Web-Services/deontology/)  
 **Licence :** MIT © 2026 Thibaut LOMBARD
 
-## Résumé exécutif
+## Résumé
 
 Le **License Header Framework (LHF)** est un utilitaire Bash de niveau professionnel
 conçu pour garantir la clarté éthique, la transparence de l’auteur,
