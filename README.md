@@ -45,7 +45,7 @@ This project establishes a clear and auditable deontological working framework, 
 
 I sincerely hope that this initiative will resonate even at the highest levels, reminding us that ethics and rigor must always precede performance and convenience.
 
----
+
 
 ## Core Features
 
