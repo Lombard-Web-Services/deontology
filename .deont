@@ -1,0 +1,24 @@
+{
+  "author": "Thibaut LOMBARD (LombardWeb)",
+  "license_type": "MIT",
+  "license_text": "Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the “Software”), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.",
+  "copyright_signs": "©",
+  "date_license_issued": "2026-02-21",
+  "license_link": "https://opensource.org/license/mit",
+  "year_of_licensing": "2026",
+  "logo": "",
+  "files_ext_targeted": "sh",
+  "system_fingerprint": {
+    "fingerprint_hash": "a15fbc9745ea0cfa",
+    "generated_at": "2026-02-21T03:07:33Z",
+    "system_info": {
+      "hostname": "bibi",
+      "cpu_model": "AMD Ryzen 7 2700U with Radeon Vega Mobile Gfx",
+      "cpu_cores": "8"
+    }
+  },
+  "ai_used": true,
+  "ai_technique": "Prompting",
+  "manager_note": "I used KIMI to adjust my tasklist, i reviewed the code , asked chatgpt, grok to create the readme, MOULT AI for Orcherstration and perplexity for the manifesto.",
+  "creator_role": "Project Manager and Software Architect , Machine learning engineer"
+}
