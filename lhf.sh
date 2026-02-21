@@ -3,13 +3,13 @@
 #===============================================================================
 # LICENSE HEADER FRAMEWORK (LHF)
 # Unified .deont configuration management and license application
-# Version: 1.0.0
+# Version: 1.0.1 - Fixed file creation
 #===============================================================================
 
 set -o pipefail
 
 readonly SCRIPT_NAME="lhf"
-readonly VERSION="1.0.0"
+readonly VERSION="1.0.1"
 readonly DEONT_VERSION="1.0"
 readonly DEFAULT_CONFIG_DIR="$HOME/.config/lhf"
 readonly TEMPLATES_DIR="$DEFAULT_CONFIG_DIR/templates"
@@ -213,7 +213,7 @@ generate_license_text() {
 }
 
 #-------------------------------------------------------------------------------
-# INTERACTIVE MODE - Creates .deont file
+# INTERACTIVE MODE - Creates .deont file directly
 #-------------------------------------------------------------------------------
 
 interactive_mode() {
@@ -224,6 +224,14 @@ interactive_mode() {
     print_info "Creating .deont configuration file: $output_file"
     print_info "Advanced Mode: $advanced_mode"
     echo
+    
+    # Check if we can write to the target directory
+    local target_dir
+    target_dir=$(dirname "$output_file")
+    if [[ ! -w "$target_dir" ]]; then
+        print_error "Cannot write to directory: $target_dir"
+        return 1
+    fi
     
     local json_data="{"
     
@@ -389,18 +397,36 @@ interactive_mode() {
     
     json_data+="}"
     
-    # Write to .deont file
-    if echo "$json_data" | jq '.' > "$output_file" 2>/dev/null; then
+    # Debug output
+    print_info "Debug: Writing to $output_file"
+    print_info "Debug: JSON data length: ${#json_data}"
+    
+    # Write to .deont file with error checking
+    if ! echo "$json_data" > "$TEMP_DIR/test.json" 2>/dev/null; then
+        print_error "Cannot write to temp directory"
+        return 1
+    fi
+    
+    if echo "$json_data" | jq '.' > "$output_file" 2>&1; then
         print_success "Configuration saved to: $output_file"
-        return 0
+        # Verify file exists
+        if [[ -f "$output_file" ]]; then
+            print_info "File verified: $(ls -la "$output_file")"
+            return 0
+        else
+            print_error "File was not created despite success message"
+            return 1
+        fi
     else
-        print_error "Failed to create valid JSON"
+        print_error "Failed to create valid JSON at $output_file"
+        print_error "JQ error output:"
+        echo "$json_data" | jq '.' 2>&1 || true
         return 1
     fi
 }
 
 #-------------------------------------------------------------------------------
-# APPLY MODE - Apply license headers using .deont file
+# APPLY MODE
 #-------------------------------------------------------------------------------
 
 apply_license() {
@@ -484,7 +510,6 @@ generate_latex_report() {
     
     local pdf_file="${output_file}.pdf"
     
-    # Extract data
     local author license_type copyright date_issued license_link year logo
     local ai_used ai_technique manager_note creator_role
     
@@ -506,7 +531,6 @@ generate_latex_report() {
         'false') ai_used="No" ;;
     esac
     
-    # Escape LaTeX
     author=$(echo "$author" | sed 's/\\/\\\\/g; s/&/\\&/g; s/%/\\%/g; s/\$/\\$/g; s/#/\\#/g; s/_/\\_/g; s/{/\\{/g; s/}/\\}/g; s/~/$\\sim$/g; s/\^/\\^/g')
     license_type=$(echo "$license_type" | sed 's/\\/\\\\/g; s/&/\\&/g; s/%/\\%/g; s/\$/\\$/g; s/#/\\#/g; s/_/\\_/g; s/{/\\{/g; s/}/\\}/g')
     
@@ -669,22 +693,18 @@ OPTIONS:
 EXAMPLES:
     # Interactive creation
     ./$SCRIPT_NAME create
-    ./$SCRIPT_NAME create --advanced -f ./config.deont
     
     # Quick creation
     ./$SCRIPT_NAME create -a "John Doe" -l "MIT" -t "@license.txt" -y 2024
     
     # Apply to files
     ./$SCRIPT_NAME apply -f .deont -e js -r --dir ./src
-    
-    # Generate report
-    ./$SCRIPT_NAME report -f .deont --pdf-only
 
 EOF
 }
 
 #-------------------------------------------------------------------------------
-# MAIN - UNIFIED COMMAND STRUCTURE
+# MAIN - FIXED
 #-------------------------------------------------------------------------------
 
 main() {
@@ -811,7 +831,7 @@ main() {
                 [[ -z "$logo" ]] && logo=""
                 
                 # Build JSON
-                jq -n \
+                if jq -n \
                     --arg author "$author" \
                     --arg license_type "$license_type" \
                     --arg license_text "$license_text" \
@@ -829,16 +849,15 @@ main() {
                         license_link: $license_link,
                         year_of_licensing: $year,
                         logo: $logo
-                    }' > "$deont_file"
-                
-                if [[ $? -eq 0 ]]; then
+                    }' > "$deont_file"; then
+                    
                     print_success "Created: $deont_file"
                 else
                     print_error "Failed to create .deont file"
                     exit 1
                 fi
             else
-                # Interactive mode
+                # Interactive mode - CALL DIRECTLY, NO COMMAND SUBSTITUTION
                 interactive_mode "$deont_file" "$advanced"
             fi
             ;;
