@@ -18,11 +18,7 @@ and structured licensing across software projects.
 As artificial intelligence and automated systems increasingly
 participate in content and software production, identifying
 responsibility and authorship has become more complex. LHF establishes a
-verifiable, structured, and auditable framework to document:
-
-> **Who • What • When • Where • Why • How • Exact Timestamp • Tools Used
-> • Contributors • Applied License**
-
+verifiable, structured, and auditable smart framework.
 LHF promotes intellectual honesty, traceability, and professional
 accountability in modern development environments.
 
