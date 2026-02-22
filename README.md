@@ -152,7 +152,7 @@ This is particularly useful when:
 **Example with JavaScript file:**
 
 ``` bash
-./lhf.sh apply -f .deont -e js --dir ./moult-ai/
+./lhf.sh apply -f .deont -e js --dir ./folder/
 ```
 
 Or for a specific file:
