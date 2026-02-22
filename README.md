@@ -3,7 +3,7 @@
 ### Ethical Licensing & Transparency Framework
 
 **Author:** Thibaut LOMBARD\
-**Repository:** https://github.com/Lombard-Web-Services/deontology/
+**Repository:** https://github.com/Lombard-Web-Services/deontology/ 
 
 **License:** MIT © 2026 Thibaut LOMBARD
 
@@ -64,6 +64,8 @@ I sincerely hope that this initiative will resonate even at the highest levels, 
     -   Compliance / managerial notes
 -   Automatic detection of previously licensed files
 -   Colored terminal output and robust error handling
+-   **NEW:** Apply license to single files using external `.deont` configuration
+-   **NEW:** Use external `.deont` files from any location
 
 
 
@@ -82,7 +84,7 @@ I sincerely hope that this initiative will resonate even at the highest levels, 
 ## Installation
 
 ``` bash
-git clone https://github.com/Lombard-Web-Services/deontology.git
+git clone https://github.com/Lombard-Web-Services/deontology.git 
 cd deontology
 chmod +x lhf.sh
 ```
@@ -129,11 +131,53 @@ Specific directory:
 ./lhf.sh apply -e py --dir ./src
 ```
 
+### Apply License to Single File with External .deont
+
+You can apply a license header to a single specific file using an external `.deont` configuration file:
+
+``` bash
+./lhf.sh apply -f /path/to/external.deont -e sh --dir ./monfichier.sh
+```
+
+This is particularly useful when:
+- You want to use a centralized `.deont` file for multiple projects
+- You need to license a single file without creating a local `.deont`
+- You manage licenses across different directories with shared configuration
+
+**Parameters:**
+- `-f /path/to/external.deont` : Path to the external `.deont` configuration file
+- `-e sh` : File extension to match (must match the target file)
+- `--dir ./monfichier.sh` : Path to the specific file to license
+
+**Example with JavaScript file:**
+
+``` bash
+./lhf.sh apply -f .deont -e js --dir ./moult-ai/
+```
+
+Or for a specific file:
+
+``` bash
+./lhf.sh apply -f ~/.config/lhf/templates/mit.deont -e js --dir ./src/app.js
+```
+
 ### Generate Professional Report (PDF Only)
 
 ``` bash
 ./lhf.sh report --pdf-only
 ```
+
+
+
+## Changelog
+
+### Version 2.0.7
+
+- **Improved:** Enhanced comment header handling for better compatibility across all supported languages
+- **Fixed:** Display issues for C, Python, and CSS language headers
+- **Fixed:** Display formatting for HTML, CSS, and JavaScript comment blocks
+- **Added:** Single file licensing support — apply license headers to individual files instead of entire directories
+- **Added:** External `.deont` file support — use configuration files from any location using the `-f` flag
 
 
 
