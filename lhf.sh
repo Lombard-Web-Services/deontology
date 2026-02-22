@@ -1,7 +1,7 @@
 #!/bin/bash
 #===============================================================================
 # LICENSE HEADER FRAMEWORK (LHF)
-# Version: 2.0.5 - Fix fingerprint JSON capture (stdout vs stderr) + structure fixes
+# Version: 2.0.7 - Fix fingerprint JSON capture (stdout vs stderr) + structure fixes
 #===============================================================================
 #  LICENSE INFORMATION
 # ================================================================================
