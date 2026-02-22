@@ -15,9 +15,7 @@ et la structuration des licences dans les projets logiciels.
 À mesure que l'intelligence artificielle et les systèmes automatisés participent
 de plus en plus à la production de contenus et de logiciels, il devient complexe
 d'identifier la responsabilité et la paternité des œuvres.  
-LHF établit un cadre vérifiable, structuré et auditable pour documenter :
-
-&gt; **Qui • Quoi • Quand • Où • Pourquoi • Comment • Horodatage exact • Outils utilisés • Contributeurs • Licence appliquée**
+LHF établit un cadre vérifiable, structuré et auditable pour documenter intelligemment.
 
 LHF promeut l'honnêteté intellectuelle, la traçabilité et la responsabilité professionnelle dans les environnements de développement modernes.
 
