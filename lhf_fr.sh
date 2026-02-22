@@ -1,37 +1,59 @@
 #!/bin/bash
+
+# ======================================================================== #
+#  INFORMATIONS DE LICENCE                                                 #
+# ======================================================================== #
+#  Auteur(s) : Thibaut LOMBARD (LombardWeb)                                #
+#  Type de Licence : MIT                                                   #
+#  Copyright : © 2026 Thibaut LOMBARD (LombardWeb)                         #
+#  Date d'Émission : 2026-02-21                                            #
+#  Lien de la Licence : https://opensource.org/license/mit                  #
+#  Technique IA : Prompting                                                #
+#  Rôle du Créateur : Chef de Projet et Architecte Logiciel, Ingénieur     #
+#  Machine Learning                                                        #
+#  ID Système : a15fbc9745ea0cfa                                           #
+#  Fichiers Cibles : sh                                                    #
+# ======================================================================== #
+#                                                                          #
+# L'autorisation est accordée, gracieusement, à toute personne obtenant    #
+# une copie de ce logiciel et des fichiers de documentation associés (le   #
+# « Logiciel »), de traiter le Logiciel sans restriction, y compris sans    #
+# limitation les droits d'utiliser, copier, modifier, fusionner, publier,  #
+# distribuer, sous-licencier et/ou vendre des copies du Logiciel, et de    #
+# permettre aux personnes à qui le Logiciel est fourni de le faire, sous   #
+# réserve des conditions suivantes :                                       #
+#                                                                          #
+# L'avis de copyright ci-dessus et cet avis d'autorisation doivent être    #
+# inclus dans toutes les copies ou parties substantielles du Logiciel.     #
+#                                                                          #
+# LE LOGICIEL EST FOURNI « EN L'ÉTAT », SANS GARANTIE D'AUCUNE SORTE,      #
+# EXPLICITE OU IMPLICITE, Y COMPRIS MAIS SANS LIMITATION LES GARANTIES DE  #
+# QUALITÉ MARCHANDE, D'ADÉQUATION À UN USAGE PARTICULIER ET D'ABSENCE DE   #
+# CONTREFAÇON. EN AUCUN CAS LES AUTEURS OU TITULAIRES DU COPYRIGHT NE      #
+# POURRONT ÊTRE TENUS RESPONSABLES DE TOUTE RÉCLAMATION, DOMMAGES OU       #
+# AUTRES RESPONSABILITÉS, QUE CE SOIT DANS UNE ACTION CONTRACTUELLE,       #
+# DÉLICTUELLE OU AUTRE, DÉCOULANT DE, HORS OU EN RELATION AVEC LE          #
+# LOGICIEL OU L'UTILISATION OU AUTRES TRANSACTIONS DANS LE LOGICIEL.       #
+# ======================================================================== #
+
 #===============================================================================
-# Framework d'apposition de License (LHF)
-# Version : 2.0.5 - Correction de la capture JSON de l'empreinte (stdout vs stderr) + corrections de structure
-# ================================================================================
-#  LICENSE INFORMATION
-# ================================================================================
-#  Author(s): Thibaut LOMBARD (LombardWeb)
-#  License Type: MIT
-#  Copyright: © 2026 Thibaut LOMBARD (LombardWeb)
-#  Date Issued: 2026-02-21
-#  License Link: https://opensource.org/license/mit
-#  AI Technique: Prompting
-#  Creator Role: Project Manager and Software Architect , Machine Learning Engineer
-#  System ID: a15fbc9745ea0cfa
-#  Target Files: sh
-# ================================================================================
-# 
-# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the “Software”), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-# 
-# The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
-# 
-# THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+# CADRE D'EN-TÊTE DE LICENCE (LHF)
+# Version : 2.0.7 - Blocs de commentaires rectangulaires fixes avec largeur cohérente
 #===============================================================================
+
 set -o pipefail
 
 readonly SCRIPT_NAME="lhf"
-readonly VERSION="2.0.5"
+readonly VERSION="2.0.7"
 readonly DEONT_VERSION="2.0"
 readonly DEFAULT_CONFIG_DIR="$HOME/.config/lhf"
 readonly TEMPLATES_DIR="$DEFAULT_CONFIG_DIR/templates"
 readonly TEMP_DIR="/tmp/lhf_$$"
 
-# Codes de couleur
+# Largeur fixe pour tous les blocs de commentaires
+readonly BLOCK_WIDTH=76
+
+# Codes couleur
 declare -A COLORS=(
   [reset]='\033[0m'
   [bold]='\033[1m'
@@ -49,7 +71,7 @@ declare -A COMMENT_STYLES=(
   ['pl']='hash' ['yaml']='hash' ['yml']='hash' ['conf']='hash'
   ['dockerfile']='hash' ['makefile']='hash'
   ['c']='c_style' ['cpp']='c_style' ['h']='c_style' ['hpp']='c_style'
-  ['java']='c_style' ['js']='c_style' ['ts']='c_style' ['css']='c_style'
+  ['java']='c_style' ['js']='js_style' ['ts']='js_style' ['css']='c_style'
   ['scss']='c_style' ['go']='c_style' ['rs']='c_style' ['swift']='c_style'
   ['kt']='c_style'
   ['html']='html_style' ['xml']='html_style' ['svg']='html_style' ['md']='html_style'
@@ -65,15 +87,14 @@ print_banner() {
   cat << 'EOF'
 
 ╔═══════════════════════════════════════════════════════════════╗
-║     📜  FRAMEWORK D'APPOSITION DE LICENCE (LHF)  📜           ║
-║      Empreinte Système & Génération PDF Améliorée             ║
+║           📜  CADRE D'EN-TÊTE DE LICENCE (LHF)  📜            ║
+║         Empreinte Système & Génération PDF Améliorée          ║
 ╚═══════════════════════════════════════════════════════════════╝
 
 EOF
   echo -e "${COLORS[reset]}"
 }
 
-# IMPORTANT : envoyer les journaux vers stderr pour que les fonctions produisant du JSON puissent utiliser stdout en toute sécurité.
 print_error()   { echo -e "${COLORS[red]}[ERREUR]${COLORS[reset]} $1" >&2; }
 print_success() { echo -e "${COLORS[green]}[SUCCÈS]${COLORS[reset]} $1" >&2; }
 print_info()    { echo -e "${COLORS[blue]}[INFO]${COLORS[reset]} $1" >&2; }
@@ -100,17 +121,15 @@ create_temp_dir() {
 }
 
 #-------------------------------------------------------------------------------
-# EMPREINTE SYSTÈME (stdout doit être uniquement JSON)
+# EMPREINTE SYSTÈME
 #-------------------------------------------------------------------------------
 generate_system_fingerprint() {
-  # Journaliser vers stderr (PAS stdout), pour que les appelants capturant stdout obtiennent du JSON pur.
-  print_info "Génération de l'empreinte système unique..."
+  print_info "Génération de l'empreinte système unique..." >&2
 
   local data=""
   local timestamp
   timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
-  # 1. Identifiants système
   if [[ -f /etc/machine-id ]]; then
     data+="MACHINE_ID:$(cat /etc/machine-id 2>/dev/null)\n"
   fi
@@ -118,7 +137,6 @@ generate_system_fingerprint() {
     data+="DBUS_ID:$(cat /var/lib/dbus/machine-id 2>/dev/null)\n"
   fi
 
-  # 2. Matériel DMI
   for file in /sys/class/dmi/id/*; do
     if [[ -r "$file" && -f "$file" ]]; then
       local basename_file
@@ -130,7 +148,6 @@ generate_system_fingerprint() {
     fi
   done
 
-  # 3. Adresses MAC
   for mac in /sys/class/net/*/address; do
     if [[ -r "$mac" ]]; then
       local mac_addr
@@ -139,14 +156,12 @@ generate_system_fingerprint() {
     fi
   done
 
-  # 4. UUID des disques
   while read -r uuid; do
     if [[ -n "$uuid" ]]; then
       data+="DISK_UUID:${uuid}\n"
     fi
   done < <(lsblk -o UUID -n 2>/dev/null | sort -u)
 
-  # 5. Informations CPU
   local cpu_model
   cpu_model=$(grep -m1 'model name' /proc/cpuinfo 2>/dev/null | cut -d: -f2 | xargs)
   if [[ -n "$cpu_model" ]]; then
@@ -158,16 +173,13 @@ generate_system_fingerprint() {
   cpu_cores=$(grep -c '^processor' /proc/cpuinfo 2>/dev/null || echo "0")
   data+="CPU_CORES:${cpu_cores}\n"
 
-  # Hachage
   local fingerprint_hash
   fingerprint_hash=$(echo -e "$data" | sha256sum | awk '{print $1}')
   fingerprint_hash="${fingerprint_hash:0:16}"
 
-  # Nom d'hôte
   local hostname_val
-  hostname_val=$(hostname 2>/dev/null || echo "unknown")
+  hostname_val=$(hostname 2>/dev/null || echo "inconnu")
 
-  # Sortie : JSON uniquement sur stdout
   jq -n \
     --arg hash "$fingerprint_hash" \
     --arg timestamp "$timestamp" \
@@ -193,40 +205,259 @@ get_comment_style() {
   echo "${COMMENT_STYLES[$extension]:-hash}"
 }
 
+# Enveloppe le texte aux limites de mots avec largeur exacte
+wrap_text_exact() {
+  local text="$1"
+  local width="$2"
+  echo "$text" | fold -s -w "$width" | while IFS= read -r line; do
+    # Supprime les espaces de fin
+    line="${line%"${line##*[![:space:]]}"}"
+    echo "$line"
+  done
+}
+
+# Remplit ou tronque la ligne à la largeur exacte
+format_line() {
+  local line="$1"
+  local width="$2"
+  local len=${#line}
+  
+  if [[ $len -gt $width ]]; then
+    # Tronque avec points de suspension si trop long
+    echo "${line:0:$((width-3))}..."
+  elif [[ $len -lt $width ]]; then
+    # Remplit avec des espaces
+    printf "%s%*s" "$line" $((width - len)) ""
+  else
+    echo "$line"
+  fi
+}
+
 format_comment_block() {
   local style="$1"
   local content="$2"
-  local width=78
-  local border
-  border=$(printf '=%.0s' $(seq 1 $((width-2))))
-
+  
   case "$style" in
     'hash')
-      echo "$content" | while IFS= read -r line; do printf "# %s\n" "$line"; done
+      # Style Shell/Python : # commentaire
+      local inner_width=$((BLOCK_WIDTH - 4))  # "# " et " #"
+      
+      # Traite tout le contenu
+      local output_lines=()
+      while IFS= read -r line || [[ -n "$line" ]]; do
+        local trimmed="${line%"${line##*[![:space:]]}"}"
+        
+        if [[ "$trimmed" =~ ^[=\-]{10,}$ ]]; then
+          local sep=$(printf '=%.0s' $(seq 1 $inner_width))
+          output_lines+=("# $sep #")
+        elif [[ -z "$trimmed" ]]; then
+          output_lines+=("# $(printf '%*s' $inner_width '') #")
+        else
+          while IFS= read -r wrapped; do
+            local formatted=$(format_line "$wrapped" "$inner_width")
+            output_lines+=("# $formatted #")
+          done < <(wrap_text_exact "$line" "$inner_width")
+        fi
+      done <<< "$content"
+      
+      # Ajoute le séparateur final si nécessaire
+      local last_line="${output_lines[-1]}"
+      local check_sep="${last_line//#/}"
+      check_sep="${check_sep// /}"
+      if [[ ! "$check_sep" =~ ^={10,}$ ]]; then
+        local final_sep=$(printf '=%.0s' $(seq 1 $inner_width))
+        output_lines+=("# $final_sep #")
+      fi
+      
+      printf '%s\n' "${output_lines[@]}"
       ;;
-    'c_style')
-      echo "/*${border}*/"
-      echo "$content" | while IFS= read -r line; do printf " * %-76s *\n" "$line"; done
-      echo "/*${border}*/"
+      
+    'js_style')
+      # JavaScript : /* ligne */ - chaque ligne séparée
+      local inner_width=$((BLOCK_WIDTH - 6))  # "/* " et " */"
+      
+      local output_lines=()
+      while IFS= read -r line || [[ -n "$line" ]]; do
+        local trimmed="${line%"${line##*[![:space:]]}"}"
+        
+        if [[ "$trimmed" =~ ^[=\-]{10,}$ ]]; then
+          local sep=$(printf '=%.0s' $(seq 1 $inner_width))
+          output_lines+=("/* $sep */")
+        elif [[ -z "$trimmed" ]]; then
+          output_lines+=("/* $(printf '%*s' $inner_width '') */")
+        else
+          while IFS= read -r wrapped; do
+            local formatted=$(format_line "$wrapped" "$inner_width")
+            output_lines+=("/* $formatted */")
+          done < <(wrap_text_exact "$line" "$inner_width")
+        fi
+      done <<< "$content"
+      
+      # Ajoute le séparateur final
+      local last_line="${output_lines[-1]}"
+      local check_sep="${last_line//\/*/}"
+      check_sep="${check_sep// /}"
+      if [[ ! "$check_sep" =~ ^={10,}$ ]]; then
+        local final_sep=$(printf '=%.0s' $(seq 1 $inner_width))
+        output_lines+=("/* $final_sep */")
+      fi
+      
+      printf '%s\n' "${output_lines[@]}"
       ;;
+      
+	'c_style')
+	  # CSS/C/Java : séparé /* */ par ligne (comme le style JS mais avec bordures pleine largeur)
+	  local inner_width=$((BLOCK_WIDTH - 6))  # "/* " et " */"
+	  
+	  local output_lines=()
+	  
+	  while IFS= read -r line || [[ -n "$line" ]]; do
+		local trimmed="${line%"${line##*[![:space:]]}"}"
+		
+		if [[ "$trimmed" =~ ^[=\-]{10,}$ ]]; then
+		  local sep=$(printf '=%.0s' $(seq 1 $inner_width))
+		  output_lines+=("/* $sep */")
+		elif [[ -z "$trimmed" ]]; then
+		  output_lines+=("/* $(printf '%*s' $inner_width '') */")
+		else
+		  while IFS= read -r wrapped; do
+			local formatted=$(format_line "$wrapped" "$inner_width")
+			output_lines+=("/* $formatted */")
+		  done < <(wrap_text_exact "$line" "$inner_width")
+		fi
+	  done <<< "$content"
+	  
+	  # Ajoute le séparateur final
+	  local last_line="${output_lines[-1]}"
+	  local check_sep="${last_line//\/*/}"
+	  check_sep="${check_sep// /}"
+	  if [[ ! "$check_sep" =~ ^={10,}$ ]]; then
+		local final_sep=$(printf '=%.0s' $(seq 1 $inner_width))
+		output_lines+=("/* $final_sep */")
+	  fi
+	  
+	  printf '%s\n' "${output_lines[@]}"
+	  ;;
+      
     'html_style')
-      echo "<!--"
-      echo "$content"
-      echo "-->"
+      # HTML : <!-- contenu -->
+      local inner_width=$((BLOCK_WIDTH - 6))  # "  " et "  "
+      
+      local output_lines=()
+      output_lines+=("<!--")
+      
+      while IFS= read -r line || [[ -n "$line" ]]; do
+        local trimmed="${line%"${line##*[![:space:]]}"}"
+        
+        if [[ "$trimmed" =~ ^[=\-]{10,}$ ]]; then
+          local sep=$(printf '=%.0s' $(seq 1 $inner_width))
+          output_lines+=("  $sep  ")
+        elif [[ -z "$trimmed" ]]; then
+          output_lines+=("  $(printf '%*s' $inner_width '')  ")
+        else
+          while IFS= read -r wrapped; do
+            local formatted=$(format_line "$wrapped" "$inner_width")
+            output_lines+=("  $formatted  ")
+          done < <(wrap_text_exact "$line" "$inner_width")
+        fi
+      done <<< "$content"
+      
+      # Ajoute le séparateur final si nécessaire
+      local last_line="${output_lines[-1]}"
+      local check_sep="${last_line// /}"
+      if [[ ! "$check_sep" =~ ^={10,}$ ]] && [[ "$last_line" != "<!--" ]]; then
+        local final_sep=$(printf '=%.0s' $(seq 1 $inner_width))
+        output_lines+=("  $final_sep  ")
+      fi
+      
+      output_lines+=("-->")
+      
+      printf '%s\n' "${output_lines[@]}"
       ;;
+      
     'lua_style')
-      echo "--[["
-      echo "$content" | while IFS= read -r line; do echo " $line"; done
-      echo "--]]"
+      # Lua : --[[ contenu ]]
+      local inner_width=$((BLOCK_WIDTH - 6))  # " " et " " à l'intérieur
+      
+      local output_lines=()
+      output_lines+=("--[[")
+      
+      while IFS= read -r line || [[ -n "$line" ]]; do
+        local trimmed="${line%"${line##*[![:space:]]}"}"
+        
+        if [[ "$trimmed" =~ ^[=\-]{10,}$ ]]; then
+          local sep=$(printf '=%.0s' $(seq 1 $inner_width))
+          output_lines+=(" $sep ")
+        elif [[ -z "$trimmed" ]]; then
+          output_lines+=(" $(printf '%*s' $inner_width '') ")
+        else
+          while IFS= read -r wrapped; do
+            local formatted=$(format_line "$wrapped" "$inner_width")
+            output_lines+=(" $formatted ")
+          done < <(wrap_text_exact "$line" "$inner_width")
+        fi
+      done <<< "$content"
+      
+      # Ajoute le séparateur final si nécessaire
+      local last_line="${output_lines[-1]}"
+      local check_sep="${last_line// /}"
+      if [[ ! "$check_sep" =~ ^={10,}$ ]] && [[ "$last_line" != "--[[" ]]; then
+        local final_sep=$(printf '=%.0s' $(seq 1 $inner_width))
+        output_lines+=(" $final_sep ")
+      fi
+      
+      output_lines+=("]]")
+      
+      printf '%s\n' "${output_lines[@]}"
       ;;
+      
     'sql_style')
-      echo "/*"
-      echo "$content" | while IFS= read -r line; do echo " * $line"; done
-      echo " */"
+      # SQL : /* contenu */
+      local inner_width=$((BLOCK_WIDTH - 5))  # " * " et ""
+      
+      local output_lines=()
+      output_lines+=("/*")
+      
+      while IFS= read -r line || [[ -n "$line" ]]; do
+        local trimmed="${line%"${line##*[![:space:]]}"}"
+        
+        if [[ "$trimmed" =~ ^[=\-]{10,}$ ]]; then
+          local sep=$(printf '=%.0s' $(seq 1 $inner_width))
+          output_lines+=(" * $sep")
+        elif [[ -z "$trimmed" ]]; then
+          output_lines+=(" * $(printf '%*s' $inner_width '')")
+        else
+          while IFS= read -r wrapped; do
+            local formatted=$(format_line "$wrapped" "$inner_width")
+            output_lines+=(" * $formatted")
+          done < <(wrap_text_exact "$line" "$inner_width")
+        fi
+      done <<< "$content"
+      
+      # Ajoute le séparateur final si nécessaire
+      local last_line="${output_lines[-1]}"
+      local check_sep="${last_line//\* /}"
+      check_sep="${check_sep// /}"
+      if [[ ! "$check_sep" =~ ^={10,}$ ]] && [[ "$last_line" != "/*" ]]; then
+        local final_sep=$(printf '=%.0s' $(seq 1 $inner_width))
+        output_lines+=(" * $final_sep")
+      fi
+      
+      output_lines+=(" */")
+      
+      printf '%s\n' "${output_lines[@]}"
       ;;
+      
     'vim_style')
-      echo "\" $(echo "$content" | tr '\n' ' ')"
+      # Vim : ligne unique
+      local flattened=$(echo "$content" | tr '\n' ' ' | sed 's/  */ /g')
+      if [[ ${#flattened} -gt $((BLOCK_WIDTH - 4)) ]]; then
+        flattened="${flattened:0:$((BLOCK_WIDTH - 7))}..."
+      fi
+      local formatted=$(format_line "$flattened" $((BLOCK_WIDTH - 4)))
+      echo "\" $formatted"
       ;;
+      
     *)
       echo "$content"
       ;;
@@ -286,29 +517,30 @@ generate_license_text() {
 
   local output=""
   case "$format" in
-    'text')
-      output+="================================================================================\n"
-      output+=" INFORMATIONS DE LICENCE\n"
-      output+="================================================================================\n"
-      output+=" Auteur(s) : $author\n"
-      output+=" Type de licence : $license_type\n"
-      output+=" Copyright : $copyright $year $author\n"
-      output+=" Date d'émission : $date_issued\n"
-      output+=" Lien de licence : $license_link\n"
-      if [[ "$include_ai_role" == "true" && "$ai_used" == "true" && -n "$creator_role" ]]; then
-        output+=" Technique IA : $ai_technique\n"
-        output+=" Rôle du créateur : $creator_role\n"
-      fi
-      if [[ "$fingerprint_hash" != "N/A" ]]; then
-        output+=" ID Système : $fingerprint_hash\n"
-      fi
-      if [[ "$files_ext_targeted" != "N/A" ]]; then
-        output+=" Fichiers cibles : $files_ext_targeted\n"
-      fi
-      output+="================================================================================\n\n"
-      output+="$license_text\n"
-      [[ -n "$logo" ]] && output+="\n Logo : $logo\n"
-      ;;
+	'text')
+	  output+="================================================================================\n"
+	  output+=" INFORMATIONS DE LICENCE\n"
+	  output+="================================================================================\n"
+	  output+=" Auteur(s) : $author\n"
+	  output+=" Type de Licence : $license_type\n"
+	  output+=" Copyright : $copyright $year $author\n"
+	  output+=" Date d'Émission : $date_issued\n"
+	  output+=" Lien de Licence : $license_link\n"
+	  if [[ "$include_ai_role" == "true" && "$ai_used" == "true" && -n "$creator_role" ]]; then
+		output+=" Technique IA : $ai_technique\n"
+		output+=" Rôle du Créateur : $creator_role\n"
+	  fi
+	  if [[ "$fingerprint_hash" != "N/A" ]]; then
+		output+=" ID Système : $fingerprint_hash\n"
+	  fi
+	  if [[ "$files_ext_targeted" != "N/A" ]]; then
+		output+=" Fichiers Cibles : $files_ext_targeted\n"
+	  fi
+	  output+="================================================================================\n"
+	  output+="\n"
+	  output+="$license_text\n"
+	  [[ -n "$logo" ]] && output+="\n Logo : $logo\n"
+	  ;;
     'json')
       output=$(jq -n \
         --arg author "$author" \
@@ -348,7 +580,7 @@ interactive_mode() {
 
   print_banner
   print_info "Création du fichier de configuration .deont : $output_file"
-  print_info "Mode avancé : $advanced_mode"
+  print_info "Mode Avancé : $advanced_mode"
   echo >&2
 
   local target_dir
@@ -359,7 +591,7 @@ interactive_mode() {
   fi
 
   local fingerprint_json
-  fingerprint_json=$(generate_system_fingerprint)   # JSON pur sur stdout maintenant
+  fingerprint_json=$(generate_system_fingerprint)
   if [[ -z "$fingerprint_json" ]] || ! echo "$fingerprint_json" | jq empty >/dev/null 2>&1; then
     print_error "Échec de la génération du JSON d'empreinte valide"
     print_info "Débogage : la sortie d'empreinte était : $fingerprint_json"
@@ -367,7 +599,7 @@ interactive_mode() {
   fi
   print_success "Empreinte générée avec succès"
 
-  print_prompt "Entrez les extensions de fichiers cibles (séparées par des virgules, ex : js,py,css) :"
+  print_prompt "Entrez les extensions de fichiers cibles (séparées par des virgules, ex: js,py,css) :"
   read -r files_ext_input
   while [[ -z "$files_ext_input" ]]; do
     print_warning "Au moins une extension est requise"
@@ -375,7 +607,7 @@ interactive_mode() {
     read -r files_ext_input
   done
 
-  print_info "${COLORS[bold]}Partie 1 : Informations de licence obligatoires${COLORS[reset]}"
+  print_info "${COLORS[bold]}Partie 1 : Informations de Licence Obligatoires${COLORS[reset]}"
   echo "─────────────────────────────────────────" >&2
 
   local author=""
@@ -394,7 +626,7 @@ interactive_mode() {
 
   local license_text=""
   while [[ -z "$license_text" ]]; do
-    print_prompt "Entrez le texte complet de la licence (appuyez sur Ctrl+D une fois terminé) :"
+    print_prompt "Entrez le texte complet de la licence (appuyez sur Ctrl+D quand terminé) :"
     license_text=$(cat)
     [[ -z "$license_text" ]] && print_warning "Le texte de licence est obligatoire"
   done
@@ -477,7 +709,7 @@ interactive_mode() {
 
   if [[ "$advanced_mode" == "true" ]]; then
     echo >&2
-    print_info "${COLORS[bold]}Partie 2 : Champs de documentation avancés${COLORS[reset]}"
+    print_info "${COLORS[bold]}Partie 2 : Champs de Documentation Avancés${COLORS[reset]}"
     echo "─────────────────────────────────────────" >&2
 
     local ai_used=""
@@ -503,8 +735,8 @@ interactive_mode() {
       print_info "Sélectionnez la technique de programmation IA :"
       echo " 1) MCP (Model Context Protocol)" >&2
       echo " 2) Prompting" >&2
-      echo " 3) Chaîne de Prompt MCP" >&2
-      echo " 4) Chaînes de prompts" >&2
+      echo " 3) Chaîne De Prompt MCP" >&2
+      echo " 4) Chaînes de prompt" >&2
       echo " 5) Mixte" >&2
       echo " 6) Autre (préciser)" >&2
 
@@ -514,15 +746,15 @@ interactive_mode() {
         case "$choice" in
           1) ai_technique="MCP" ;;
           2) ai_technique="Prompting" ;;
-          3) ai_technique="Chaîne de Prompt MCP" ;;
-          4) ai_technique="Chaînes de prompts" ;;
+          3) ai_technique="Chaîne De Prompt MCP" ;;
+          4) ai_technique="Chaînes de prompt" ;;
           5) ai_technique="Mixte" ;;
           6) print_prompt "Veuillez préciser la technique :"; read -r ai_technique ;;
           *) print_warning "Choix invalide" ;;
         esac
       done
 
-      print_prompt "Entrez les notes du gestionnaire (max 10000 caractères, appuyez sur Ctrl+D une fois terminé) :"
+      print_prompt "Entrez les notes du gestionnaire (max 10000 caractères, appuyez sur Ctrl+D quand terminé) :"
       manager_note=$(cat)
       manager_note=${manager_note:0:10000}
 
@@ -565,21 +797,22 @@ interactive_mode() {
 apply_license() {
   local config_file="$1"
   local recursive="${2:-true}"
-  local target_dir="${3:-.}"
+  local target="${3:-.}"
+  local specific_file="${4:-}"
 
   if [[ ! -f "$config_file" ]]; then
     print_error "Fichier de configuration non trouvé : $config_file"
     return 1
   fi
   if ! jq empty "$config_file" 2>/dev/null; then
-    print_error "JSON invalide dans le fichier de configuration : $config_file"
+    print_error "JSON invalide dans le fichier de config : $config_file"
     return 1
   fi
 
   local files_ext_targeted
   files_ext_targeted=$(jq -r '.files_ext_targeted // empty' "$config_file")
   if [[ -z "$files_ext_targeted" ]]; then
-    print_error "Aucune extension cible spécifiée dans la configuration (files_ext_targeted)"
+    print_error "Aucune extension cible spécifiée dans la config (files_ext_targeted)"
     return 1
   fi
 
@@ -589,12 +822,20 @@ apply_license() {
   creator_role=$(jq -r '.creator_role // empty' "$config_file")
   if [[ "$ai_used" == "true" && -n "$creator_role" ]]; then
     advanced_mode="true"
-    print_info "Mode avancé détecté - Le rôle de l'IA sera inclus dans les en-têtes de licence"
+    print_info "Mode avancé détecté - Le rôle IA sera inclus dans les en-têtes de licence"
+  fi
+
+  # Vérifie si la cible est un fichier ou un répertoire
+  if [[ -f "$target" ]]; then
+    specific_file="$target"
+    target=$(dirname "$target")
+    print_info "Mode fichier unique : $specific_file"
+  else
+    print_info "Mode répertoire : $target (Récursif : $recursive)"
   fi
 
   print_info "Application de la licence depuis $config_file"
   print_info "Extensions cibles : $files_ext_targeted"
-  print_info "Répertoire : $target_dir (Récursif : $recursive)"
 
   IFS=',' read -ra EXTENSIONS <<< "$files_ext_targeted"
   local total_count=0
@@ -603,7 +844,26 @@ apply_license() {
     ext=$(echo "$ext" | xargs)
     [[ -z "$ext" ]] && continue
 
+    # Si un fichier spécifique est fourni, vérifie s'il correspond à cette extension
+    if [[ -n "$specific_file" ]]; then
+      if [[ ! "$specific_file" =~ \.$ext$ ]]; then
+        continue
+      fi
+      local files_to_process=("$specific_file")
+    else
+      local find_args=("$target" "-type" "f" "-name" "*.$ext")
+      [[ "$recursive" != "true" ]] && find_args=("$target" "-maxdepth" "1" "-type" "f" "-name" "*.$ext")
+      
+      local files_to_process=()
+      while IFS= read -r -d '' file; do
+        files_to_process+=("$file")
+      done < <(find "${find_args[@]}" -print0 2>/dev/null)
+    fi
+
+    [[ ${#files_to_process[@]} -eq 0 ]] && continue
+
     print_info "Traitement des fichiers *.$ext..."
+
     local license_content
     license_content=$(generate_license_text "$config_file" "text" "$advanced_mode") || continue
 
@@ -611,22 +871,77 @@ apply_license() {
     comment_style=$(get_comment_style "$ext")
     formatted_header=$(format_comment_block "$comment_style" "$license_content")
 
-    local find_args=("$target_dir" "-type" "f" "-name" "*.$ext")
-    [[ "$recursive" != "true" ]] && find_args=("$target_dir" "-maxdepth" "1" "-type" "f" "-name" "*.$ext")
-
     local count=0
-    while IFS= read -r -d '' file; do
+    for file in "${files_to_process[@]}"; do
+      if [[ ! -f "$file" ]]; then
+        print_error "Fichier non trouvé : $file"
+        continue
+      fi
+
       if head -n 5 "$file" 2>/dev/null | grep -q "INFORMATIONS DE LICENCE"; then
         print_warning "Ignoré (licence déjà présente) : $file"
         continue
       fi
 
       local temp_file="$TEMP_DIR/$(basename "$file").tmp"
-      {
-        echo "$formatted_header"
-        echo ""
-        cat "$file"
-      } > "$temp_file"
+      
+      # Traitement spécial pour les fichiers HTML - insertion entre <html> et <head>
+      if [[ "$ext" == "html" ]] || [[ "$ext" == "htm" ]]; then
+        if grep -qi "<html" "$file"; then
+          # Crée le motif : trouve <html>, puis insère avant <head> ou la balise suivante
+          awk -v header="$formatted_header" '
+            /<html[^>]*>/ {
+              print
+              # Lit les lignes jusqu'à trouver <head> ou un contenu non vide
+              while ((getline line) > 0) {
+                if (line ~ /<head/i || line ~ /<body/i || line ~ /<\?/ || line ~ /<![a-z]/i) {
+                  # Balise cible trouvée, insère l'en-tête avant
+                  print header
+                  print line
+                  break
+                } else if (line ~ /^[[:space:]]*$/) {
+                  # Ligne vide, ignore (ne conserve pas les nouvelles lignes supplémentaires)
+                  continue
+                } else {
+                  # Autre contenu, insère l'en-tête et affiche cette ligne
+                  print header
+                  print line
+                  break
+                }
+              }
+              next
+            }
+            { print }
+          ' "$file" > "$temp_file"
+        else
+          {
+            echo "$formatted_header"
+            cat "$file"
+          } > "$temp_file"
+        fi
+      else
+        # Traitement standard pour les autres fichiers
+        local first_line
+        first_line=$(head -n 1 "$file")
+        
+        if [[ "$first_line" =~ ^#! ]]; then
+          # Shebang trouvé - le conserve en haut
+          {
+            echo "$first_line"
+            echo ""
+            echo "$formatted_header"
+            echo ""
+            tail -n +2 "$file"
+          } > "$temp_file"
+        else
+          # Pas de shebang, préfixe la licence
+          {
+            echo "$formatted_header"
+            echo ""
+            cat "$file"
+          } > "$temp_file"
+        fi
+      fi
 
       if mv "$temp_file" "$file"; then
         print_success "Licencié : $file"
@@ -635,7 +950,7 @@ apply_license() {
       else
         print_error "Échec : $file"
       fi
-    done < <(find "${find_args[@]}" -print0 2>/dev/null)
+    done
 
     print_success "$count fichier(s) *.$ext traité(s)"
   done
@@ -644,7 +959,7 @@ apply_license() {
 }
 
 #-------------------------------------------------------------------------------
-# GÉNÉRATION DE RAPPORT PDF (logique inchangée ; conservée de votre version)
+# GÉNÉRATION DE RAPPORT PDF
 #-------------------------------------------------------------------------------
 generate_latex_report() {
   local config_file="$1"
@@ -656,7 +971,7 @@ generate_latex_report() {
     return 1
   fi
   if ! jq empty "$config_file" 2>/dev/null; then
-    print_error "JSON invalide dans le fichier de configuration : $config_file"
+    print_error "JSON invalide dans le fichier de config : $config_file"
     return 1
   fi
 
@@ -679,8 +994,8 @@ generate_latex_report() {
   local fingerprint_hash fp_hostname fp_timestamp
   local files_ext_targeted full_license_text
 
-  author=$(jq -r '.author // .authors // "Unknown"' "$config_file")
-  license_type=$(jq -r '.license_type // .["license type"] // "Unspecified"' "$config_file")
+  author=$(jq -r '.author // .authors // "Inconnu"' "$config_file")
+  license_type=$(jq -r '.license_type // .["license type"] // "Non spécifié"' "$config_file")
   copyright=$(jq -r '.copyright_signs // .["copyright signs"] // "©"' "$config_file")
   date_issued=$(jq -r '.date_license_issued // .["date license issued"] // "N/A"' "$config_file")
   license_link=$(jq -r '.license_link // .["license link"] // "N/A"' "$config_file")
@@ -725,16 +1040,16 @@ generate_latex_report() {
 \\geometry{margin=2.5cm}
 \\pagestyle{fancy}
 \\fancyhf{}
-\\rhead{Rapport de licence}
+\\rhead{Rapport de Licence}
 \\lhead{LHF v$VERSION}
 \\rfoot{Page \\thepage}
-\\title{\\textbf{Rapport de documentation de licence}\\\\\\Large Généré par LHF v$VERSION}
-\\author{Cadre déontologique}
+\\title{\\textbf{Rapport de Documentation de Licence}\\\\\\Large Généré par LHF v$VERSION}
+\\author{Cadre Déontologique}
 \\date{\\today}
 \\begin{document}
 \\maketitle
 
-\\section{Vue d'ensemble de la licence}
+\\section{Aperçu de la Licence}
 \\begin{table}[h]
 \\centering
 \\renewcommand{\\arraystretch}{1.3}
@@ -743,25 +1058,25 @@ generate_latex_report() {
 Champ & Valeur \\\\
 \\midrule
 Auteur(s) & $author \\\\
-Type de licence & $license_type \\\\
+Type de Licence & $license_type \\\\
 Copyright & $copyright $year $author \\\\
-Date d'émission & $date_issued \\\\
-Lien de licence & \\url{$license_link} \\\\
-Année de licence & $year \\\\
-Fichiers cibles & $files_ext_targeted \\\\
+Date d'Émission & $date_issued \\\\
+Lien de Licence & \\url{$license_link} \\\\
+Année de Licence & $year \\\\
+Fichiers Cibles & $files_ext_targeted \\\\
 \\bottomrule
 \\end{tabular}
-\\caption{Informations principales de licence}
+\\caption{Informations Principales de Licence}
 \\end{table}
 
-\\subsection{Avis de copyright}
+\\subsection{Avis de Copyright}
 Le symbole de copyright $copyright indique que $author conserve les droits de propriété intellectuelle pour l'année $year.
 EOF
 
   if [[ "$fingerprint_hash" != "N/A" ]]; then
     cat >> "$tex_file" << EOF
 
-\\section{Empreinte système}
+\\section{Empreinte Système}
 Ce document a été généré avec un identifiant système unique à des fins de traçabilité.
 \\begin{table}[h]
 \\centering
@@ -770,12 +1085,12 @@ Ce document a été généré avec un identifiant système unique à des fins de
 \\toprule
 Propriété & Valeur \\\\
 \\midrule
-Hachage d'empreinte & \\texttt{$fingerprint_hash} \\\\
-Généré le & $fp_timestamp \\\\
-Nom d'hôte & $fp_hostname \\\\
+Hash d'Empreinte & \\texttt{$fingerprint_hash} \\\\
+Généré Le & $fp_timestamp \\\\
+Nom d'Hôte & $fp_hostname \\\\
 \\bottomrule
 \\end{tabular}
-\\caption{Identification système}
+\\caption{Identification Système}
 \\end{table}
 EOF
   fi
@@ -791,7 +1106,7 @@ EOF
 \\toprule
 Aspect & Détails \\\\
 \\midrule
-IA utilisée & $ai_used \\\\
+IA Utilisée & $ai_used \\\\
 EOF
 
     if [[ "$ai_used" == "Oui" && "$ai_technique" != "N/A" ]]; then
@@ -803,15 +1118,15 @@ EOF
     cat >> "$tex_file" << EOF
 \\bottomrule
 \\end{tabular}
-\\caption{Informations d'utilisation de l'IA}
+\\caption{Informations d'Utilisation de l'IA}
 \\end{table}
 EOF
 
     if [[ "$ai_used" == "Oui" && "$ai_technique" != "N/A" ]]; then
       cat >> "$tex_file" << EOF
 
-\\subsection{Approche technique}
-Le développement de cette œuvre a employé \\textbf{$ai_technique} comme méthodologie de programmation IA principale.
+\\subsection{Approche Technique}
+Le développement de cette œuvre a employé \\textbf{$ai_technique} comme méthodologie principale de programmation IA.
 EOF
     fi
   fi
@@ -819,8 +1134,8 @@ EOF
   if [[ "$creator_role" != "N/A" && -n "$creator_role" ]]; then
     cat >> "$tex_file" << EOF
 
-\\section{Personnel et responsabilités}
-\\subsection{Rôle du créateur}
+\\section{Personnel et Responsabilités}
+\\subsection{Rôle du Créateur}
 \\begin{quote}
 $creator_role
 \\end{quote}
@@ -830,8 +1145,8 @@ EOF
   if [[ "$manager_note" != "N/A" && -n "$manager_note" ]]; then
     cat >> "$tex_file" << EOF
 
-\\section{Notes administratives}
-\\subsection{Observations managériales}
+\\section{Notes Administratives}
+\\subsection{Observations Managériales}
 \\begin{quote}
 $manager_note
 \\end{quote}
@@ -841,7 +1156,7 @@ EOF
   if [[ -n "$logo" && "$logo" != "null" && "$logo" != "N/A" ]]; then
     cat >> "$tex_file" << EOF
 
-\\section{Identité visuelle}
+\\section{Identité Visuelle}
 \\begin{center}
 \\url{$logo}
 \\end{center}
@@ -849,9 +1164,9 @@ EOF
   fi
 
   cat >> "$tex_file" << 'LATEX_LEGAL'
-\section{Texte juridique}
+\section{Texte Légal}
 \begin{center}
-\textit{Le texte juridique complet de la licence est fourni ci-dessous :}
+\textit{Le texte légal complet de la licence est fourni ci-dessous :}
 \end{center}
 \vspace{0.5cm}
 \noindent\begin{minipage}{\textwidth}
@@ -878,9 +1193,9 @@ LATEX_LEGAL
 \\end{minipage}
 \\vfill
 \\begin{center}
-\\textit{Ce rapport a été généré automatiquement par le Cadre d'en-tête de licence v$VERSION}\\\\
-\\textit{Version du document : $DEONT_VERSION | Date de génération : \\today}\\\\
-Empreinte système : \\texttt{$fingerprint_hash}
+\\textit{Ce rapport a été généré automatiquement par le Cadre d'En-tête de Licence v$VERSION}\\\\
+\\textit{Version du Document : $DEONT_VERSION | Date de Génération : \\today}\\\\
+Empreinte Système : \\texttt{$fingerprint_hash}
 \\end{center}
 \\end{document}
 EOF
@@ -916,29 +1231,29 @@ EOF
 #-------------------------------------------------------------------------------
 show_help() {
   cat << EOF
-Cadre d'en-tête de licence (LHF) v$VERSION
+Cadre d'En-tête de Licence (LHF) v$VERSION
 
 UTILISATION :
 ./$SCRIPT_NAME [COMMANDE] [OPTIONS]
 
 COMMANDES :
   init       Initialiser le répertoire de configuration
-  create     Créer un fichier .deont (interactif par défaut)
-  apply      Appliquer les en-têtes de licence aux fichiers en utilisant .deont
+  create     Créer le fichier .deont (interactif par défaut)
+  apply      Appliquer les en-têtes de licence aux fichiers via .deont
   report     Générer un rapport PDF depuis .deont
   validate   Valider le fichier .deont
 
 OPTIONS :
-  -f, --file FILE         Chemin du fichier .deont (par défaut : ./.deont)
-  -a, --author NAME       Nom de l'auteur (pour création rapide)
+  -f, --file FICHIER      Chemin du fichier .deont (défaut : ./.deont)
+  -a, --author NOM        Nom de l'auteur (pour création rapide)
   -l, --license TYPE      Type de licence (MIT, GPL, etc.)
-  -t, --text TEXT         Texte de licence (ou @fichier.txt)
+  -t, --text TEXTE        Texte de licence (ou @fichier.txt)
   -d, --date DATE         Date d'émission (AAAA-MM-JJ)
-  -y, --year YEAR         Année de licence
+  -y, --year ANNÉE        Année de licence
   -u, --url URL           URL de la licence
   -e, --extensions EXT    Extensions cibles (séparées par des virgules)
-  -r, --recursive         Mode récursif pour l'application
-  --dir RÉPERTOIRE        Répertoire cible (par défaut : .)
+  -r, --recursive         Mode récursif pour apply
+  --dir RÉPERTOIRE        Répertoire cible (défaut : .)
   --advanced              Activer les champs avancés (IA, empreinte)
   --pdf-only              Générer uniquement le PDF
   -h, --help              Afficher l'aide
@@ -1016,7 +1331,7 @@ main() {
         fi
 
         [[ -z "$date_issued" ]] && date_issued=$(date +%Y-%m-%d)
-        [[ -z "$license_link" ]] && license_link="https://opensource.org/licenses/$license_type"
+        [[ -z "$license_link" ]] && license_link="https://opensource.org/licenses/  $license_type"
         [[ -z "$logo" ]] && logo=""
 
         local fingerprint_json
@@ -1072,7 +1387,7 @@ main() {
       if generate_license_text "$deont_file" > /dev/null; then
         print_success "Le fichier .deont est valide : $deont_file"
       else
-        print_error "Échec de la validation pour : $deont_file"
+        print_error "Validation échouée pour : $deont_file"
         exit 1
       fi
       ;;
