@@ -3,7 +3,6 @@
 # LICENSE HEADER FRAMEWORK (LHF)
 # Version: 2.0.5 - Fix fingerprint JSON capture (stdout vs stderr) + structure fixes
 #===============================================================================
-# ================================================================================
 #  LICENSE INFORMATION
 # ================================================================================
 #  Author(s): Thibaut LOMBARD (LombardWeb)
@@ -23,14 +22,18 @@
 # 
 # THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+
 set -o pipefail
 
 readonly SCRIPT_NAME="lhf"
-readonly VERSION="2.0.5"
+readonly VERSION="2.0.7"
 readonly DEONT_VERSION="2.0"
 readonly DEFAULT_CONFIG_DIR="$HOME/.config/lhf"
 readonly TEMPLATES_DIR="$DEFAULT_CONFIG_DIR/templates"
 readonly TEMP_DIR="/tmp/lhf_$$"
+
+# Fixed width for all comment blocks
+readonly BLOCK_WIDTH=76
 
 # Color codes
 declare -A COLORS=(
@@ -50,7 +53,7 @@ declare -A COMMENT_STYLES=(
   ['pl']='hash' ['yaml']='hash' ['yml']='hash' ['conf']='hash'
   ['dockerfile']='hash' ['makefile']='hash'
   ['c']='c_style' ['cpp']='c_style' ['h']='c_style' ['hpp']='c_style'
-  ['java']='c_style' ['js']='c_style' ['ts']='c_style' ['css']='c_style'
+  ['java']='c_style' ['js']='js_style' ['ts']='js_style' ['css']='c_style'
   ['scss']='c_style' ['go']='c_style' ['rs']='c_style' ['swift']='c_style'
   ['kt']='c_style'
   ['html']='html_style' ['xml']='html_style' ['svg']='html_style' ['md']='html_style'
@@ -74,7 +77,6 @@ EOF
   echo -e "${COLORS[reset]}"
 }
 
-# IMPORTANT: send logs to stderr so JSON-producing functions can use stdout safely.
 print_error()   { echo -e "${COLORS[red]}[ERROR]${COLORS[reset]} $1" >&2; }
 print_success() { echo -e "${COLORS[green]}[SUCCESS]${COLORS[reset]} $1" >&2; }
 print_info()    { echo -e "${COLORS[blue]}[INFO]${COLORS[reset]} $1" >&2; }
@@ -101,17 +103,15 @@ create_temp_dir() {
 }
 
 #-------------------------------------------------------------------------------
-# SYSTEM FINGERPRINT (stdout must be JSON only)
+# SYSTEM FINGERPRINT
 #-------------------------------------------------------------------------------
 generate_system_fingerprint() {
-  # Log to stderr (NOT stdout), so callers capturing stdout get pure JSON.
-  print_info "Generating unique system fingerprint..."
+  print_info "Generating unique system fingerprint..." >&2
 
   local data=""
   local timestamp
   timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
-  # 1. System identifiers
   if [[ -f /etc/machine-id ]]; then
     data+="MACHINE_ID:$(cat /etc/machine-id 2>/dev/null)\n"
   fi
@@ -119,7 +119,6 @@ generate_system_fingerprint() {
     data+="DBUS_ID:$(cat /var/lib/dbus/machine-id 2>/dev/null)\n"
   fi
 
-  # 2. DMI Hardware
   for file in /sys/class/dmi/id/*; do
     if [[ -r "$file" && -f "$file" ]]; then
       local basename_file
@@ -131,7 +130,6 @@ generate_system_fingerprint() {
     fi
   done
 
-  # 3. MAC addresses
   for mac in /sys/class/net/*/address; do
     if [[ -r "$mac" ]]; then
       local mac_addr
@@ -140,14 +138,12 @@ generate_system_fingerprint() {
     fi
   done
 
-  # 4. Disk UUIDs
   while read -r uuid; do
     if [[ -n "$uuid" ]]; then
       data+="DISK_UUID:${uuid}\n"
     fi
   done < <(lsblk -o UUID -n 2>/dev/null | sort -u)
 
-  # 5. CPU info
   local cpu_model
   cpu_model=$(grep -m1 'model name' /proc/cpuinfo 2>/dev/null | cut -d: -f2 | xargs)
   if [[ -n "$cpu_model" ]]; then
@@ -159,16 +155,13 @@ generate_system_fingerprint() {
   cpu_cores=$(grep -c '^processor' /proc/cpuinfo 2>/dev/null || echo "0")
   data+="CPU_CORES:${cpu_cores}\n"
 
-  # Hash
   local fingerprint_hash
   fingerprint_hash=$(echo -e "$data" | sha256sum | awk '{print $1}')
   fingerprint_hash="${fingerprint_hash:0:16}"
 
-  # Hostname
   local hostname_val
   hostname_val=$(hostname 2>/dev/null || echo "unknown")
 
-  # Output: JSON only on stdout
   jq -n \
     --arg hash "$fingerprint_hash" \
     --arg timestamp "$timestamp" \
@@ -194,40 +187,178 @@ get_comment_style() {
   echo "${COMMENT_STYLES[$extension]:-hash}"
 }
 
+# Wrap text at word boundaries with exact width
+wrap_text_exact() {
+  local text="$1"
+  local width="$2"
+  echo "$text" | fold -s -w "$width" | while IFS= read -r line; do
+    # Trim trailing whitespace
+    line="${line%"${line##*[![:space:]]}"}"
+    echo "$line"
+  done
+}
+
+# Pad or truncate line to exact width
+format_line() {
+  local line="$1"
+  local width="$2"
+  local len=${#line}
+  
+  if [[ $len -gt $width ]]; then
+    # Truncate with ellipsis if too long
+    echo "${line:0:$((width-3))}..."
+  elif [[ $len -lt $width ]]; then
+    # Pad with spaces
+    printf "%s%*s" "$line" $((width - len)) ""
+  else
+    echo "$line"
+  fi
+}
+
 format_comment_block() {
   local style="$1"
   local content="$2"
-  local width=78
-  local border
-  border=$(printf '=%.0s' $(seq 1 $((width-2))))
-
+  local inner_width=$((BLOCK_WIDTH - 4))  # Account for " * " prefix and " *" suffix
+  
   case "$style" in
     'hash')
-      echo "$content" | while IFS= read -r line; do printf "# %s\n" "$line"; done
+      # Shell/Python style: # comment
+      local border=$(printf '#%.0s' $(seq 1 $BLOCK_WIDTH))
+      echo "$border"
+      
+      echo "$content" | while IFS= read -r line; do
+        if [[ -z "$line" ]]; then
+          printf "# %*s #\n" $((inner_width - 2)) ""
+        else
+          wrap_text_exact "$line" $((inner_width - 2)) | while IFS= read -r wrapped; do
+            local formatted
+            formatted=$(format_line "$wrapped" $((inner_width - 2)))
+            printf "# %s #\n" "$formatted"
+          done
+        fi
+      done
+      
+      echo "$border"
       ;;
+      
+	'js_style')
+	  # JavaScript/TypeScript style: each line is a complete block comment
+	  local inner_width=$((BLOCK_WIDTH - 6))  # Account for "/* " and " */"
+	  
+	  echo "$content" | while IFS= read -r line; do
+		# Check if this is a separator line (only = or - or spaces)
+		if [[ "$line" =~ ^[=\-[:space:]]+$ ]] || [[ "$line" =~ ^[=\-]+$ ]]; then
+		  # It's a separator - generate a full-width separator line
+		  local sep_content=$(printf '=%.0s' $(seq 1 $inner_width))
+		  printf "/* %s */\n" "$sep_content"
+		elif [[ -z "$line" ]]; then
+		  # Empty line
+		  printf "/* %*s */\n" $inner_width ""
+		else
+		  # Regular content line
+		  wrap_text_exact "$line" "$inner_width" | while IFS= read -r wrapped; do
+			local formatted
+			formatted=$(format_line "$wrapped" "$inner_width")
+			printf "/* %s */\n" "$formatted"
+		  done
+		fi
+	  done
+	  
+	  # Add final delimiter line
+	  local final_sep=$(printf '=%.0s' $(seq 1 $inner_width))
+	  printf "/* %s */\n" "$final_sep"
+	  ;;      
+	  
     'c_style')
-      echo "/*${border}*/"
-      echo "$content" | while IFS= read -r line; do printf " * %-76s *\n" "$line"; done
-      echo "/*${border}*/"
+      # C/C++/Java style: clean block comment
+      printf "/*%*s\n" $((BLOCK_WIDTH - 2)) ""
+      
+      echo "$content" | while IFS= read -r line; do
+        if [[ -z "$line" ]]; then
+          printf " * %*s *\n" $((inner_width - 2)) ""
+        else
+          wrap_text_exact "$line" $((inner_width - 2)) | while IFS= read -r wrapped; do
+            local formatted
+            formatted=$(format_line "$wrapped" $((inner_width - 2)))
+            printf " * %s *\n" "$formatted"
+          done
+        fi
+      done
+      
+      printf " %*s*/\n" $((BLOCK_WIDTH - 3)) ""
       ;;
+      
     'html_style')
-      echo "<!--"
-      echo "$content"
-      echo "-->"
+      # HTML/XML style: <!-- comment -->
+      local border=$(printf '=%.0s' $(seq 1 $((BLOCK_WIDTH - 5))))
+      
+      echo "<!--${border}-->"
+      
+      echo "$content" | while IFS= read -r line; do
+        if [[ -z "$line" ]]; then
+          printf "  %*s  \n" $((inner_width - 4)) ""
+        else
+          wrap_text_exact "$line" $((inner_width - 4)) | while IFS= read -r wrapped; do
+            local formatted
+            formatted=$(format_line "$wrapped" $((inner_width - 4)))
+            printf "  %s  \n" "$formatted"
+          done
+        fi
+      done
+      
+      echo "<!--${border}-->"
       ;;
+      
     'lua_style')
-      echo "--[["
-      echo "$content" | while IFS= read -r line; do echo " $line"; done
-      echo "--]]"
+      # Lua style: --[[ comment --]]
+      printf "--[[%*s\n" $((BLOCK_WIDTH - 4)) ""
+      
+      echo "$content" | while IFS= read -r line; do
+        if [[ -z "$line" ]]; then
+          printf " %*s \n" $((inner_width - 2)) ""
+        else
+          wrap_text_exact "$line" $((inner_width - 2)) | while IFS= read -r wrapped; do
+            local formatted
+            formatted=$(format_line "$wrapped" $((inner_width - 2)))
+            printf " %s \n" "$formatted"
+          done
+        fi
+      done
+      
+      printf "%*s]]\n" $((BLOCK_WIDTH - 2)) ""
       ;;
+      
     'sql_style')
+      # SQL style: /* comment */
       echo "/*"
-      echo "$content" | while IFS= read -r line; do echo " * $line"; done
+      
+      echo "$content" | while IFS= read -r line; do
+        if [[ -z "$line" ]]; then
+          printf " * %*s\n" $((inner_width - 3)) ""
+        else
+          wrap_text_exact "$line" $((inner_width - 3)) | while IFS= read -r wrapped; do
+            local formatted
+            formatted=$(format_line "$wrapped" $((inner_width - 3)))
+            printf " * %s\n" "$formatted"
+          done
+        fi
+      done
+      
       echo " */"
       ;;
+      
     'vim_style')
-      echo "\" $(echo "$content" | tr '\n' ' ')"
+      # Vim style: " comment (single line only)
+      local flattened
+      flattened=$(echo "$content" | tr '\n' ' ' | sed 's/  */ /g')
+      if [[ ${#flattened} -gt $((BLOCK_WIDTH - 4)) ]]; then
+        flattened="${flattened:0:$((BLOCK_WIDTH - 7))}..."
+      fi
+      local formatted
+      formatted=$(format_line "$flattened" $((BLOCK_WIDTH - 4)))
+      echo "\" $formatted"
       ;;
+      
     *)
       echo "$content"
       ;;
@@ -360,7 +491,7 @@ interactive_mode() {
   fi
 
   local fingerprint_json
-  fingerprint_json=$(generate_system_fingerprint)   # pure JSON on stdout now
+  fingerprint_json=$(generate_system_fingerprint)
   if [[ -z "$fingerprint_json" ]] || ! echo "$fingerprint_json" | jq empty >/dev/null 2>&1; then
     print_error "Failed to generate valid fingerprint JSON"
     print_info "Debug: fingerprint output was: $fingerprint_json"
@@ -645,7 +776,7 @@ apply_license() {
 }
 
 #-------------------------------------------------------------------------------
-# PDF REPORT GENERATION (unchanged logic; kept from your version)
+# PDF REPORT GENERATION
 #-------------------------------------------------------------------------------
 generate_latex_report() {
   local config_file="$1"
@@ -1017,7 +1148,7 @@ main() {
         fi
 
         [[ -z "$date_issued" ]] && date_issued=$(date +%Y-%m-%d)
-        [[ -z "$license_link" ]] && license_link="https://opensource.org/licenses/$license_type"
+        [[ -z "$license_link" ]] && license_link="https://opensource.org/licenses/ $license_type"
         [[ -z "$logo" ]] && logo=""
 
         local fingerprint_json
