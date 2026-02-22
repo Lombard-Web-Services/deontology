@@ -1,27 +1,44 @@
 #!/bin/bash
+
+# ======================================================================== #
+#  LICENSE INFORMATION                                                     #
+# ======================================================================== #
+#  Author(s): Thibaut LOMBARD (LombardWeb)                                 #
+#  License Type: MIT                                                       #
+#  Copyright: © 2026 Thibaut LOMBARD (LombardWeb)                          #
+#  Date Issued: 2026-02-21                                                 #
+#  License Link: https://opensource.org/license/mit                        #
+#  AI Technique: Prompting                                                 #
+#  Creator Role: Project Manager and Software Architect , Machine          #
+# learning engineer                                                        #
+#  System ID: a15fbc9745ea0cfa                                             #
+#  Target Files: sh                                                        #
+# ======================================================================== #
+#                                                                          #
+# Permission is hereby granted, free of charge, to any person obtaining a  #
+# copy of this software and associated documentation files (the            #
+# “Software”), to deal in the Software without restriction, including      #
+# without limitation the rights to use, copy, modify, merge, publish,      #
+# distribute, sublicense, and/or sell copies of the Software, and to       #
+# permit persons to whom the Software is furnished to do so, subject to    #
+# the following conditions:                                                #
+#                                                                          #
+# The above copyright notice and this permission notice shall be included  #
+# in all copies or substantial portions of the Software.                   #
+#                                                                          #
+# THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND,          #
+# EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF       #
+# MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.   #
+# IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY     #
+# CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,     #
+# TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE        #
+# SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                   #
+# ======================================================================== #
+
 #===============================================================================
 # LICENSE HEADER FRAMEWORK (LHF)
-# Version: 2.0.7 - Fix fingerprint JSON capture (stdout vs stderr) + structure fixes
+# Version: 2.0.7 - Fixed rectangular comment blocks with consistent width
 #===============================================================================
-#  LICENSE INFORMATION
-# ================================================================================
-#  Author(s): Thibaut LOMBARD (LombardWeb)
-#  License Type: MIT
-#  Copyright: © 2026 Thibaut LOMBARD (LombardWeb)
-#  Date Issued: 2026-02-21
-#  License Link: https://opensource.org/license/mit
-#  AI Technique: Prompting
-#  Creator Role: Project Manager and Software Architect , Machine Learning Engineer
-#  System ID: a15fbc9745ea0cfa
-#  Target Files: sh
-# ================================================================================
-# 
-# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the “Software”), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-# 
-# The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
-# 
-# THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-
 
 set -o pipefail
 
@@ -218,144 +235,225 @@ format_line() {
 format_comment_block() {
   local style="$1"
   local content="$2"
-  local inner_width=$((BLOCK_WIDTH - 4))  # Account for " * " prefix and " *" suffix
   
   case "$style" in
     'hash')
       # Shell/Python style: # comment
-      local border=$(printf '#%.0s' $(seq 1 $BLOCK_WIDTH))
-      echo "$border"
+      local inner_width=$((BLOCK_WIDTH - 4))  # "# " and " #"
       
-      echo "$content" | while IFS= read -r line; do
-        if [[ -z "$line" ]]; then
-          printf "# %*s #\n" $((inner_width - 2)) ""
+      # Process all content
+      local output_lines=()
+      while IFS= read -r line || [[ -n "$line" ]]; do
+        local trimmed="${line%"${line##*[![:space:]]}"}"
+        
+        if [[ "$trimmed" =~ ^[=\-]{10,}$ ]]; then
+          local sep=$(printf '=%.0s' $(seq 1 $inner_width))
+          output_lines+=("# $sep #")
+        elif [[ -z "$trimmed" ]]; then
+          output_lines+=("# $(printf '%*s' $inner_width '') #")
         else
-          wrap_text_exact "$line" $((inner_width - 2)) | while IFS= read -r wrapped; do
-            local formatted
-            formatted=$(format_line "$wrapped" $((inner_width - 2)))
-            printf "# %s #\n" "$formatted"
-          done
+          while IFS= read -r wrapped; do
+            local formatted=$(format_line "$wrapped" "$inner_width")
+            output_lines+=("# $formatted #")
+          done < <(wrap_text_exact "$line" "$inner_width")
         fi
-      done
+      done <<< "$content"
       
-      echo "$border"
+      # Add final separator if needed
+      local last_line="${output_lines[-1]}"
+      local check_sep="${last_line//#/}"
+      check_sep="${check_sep// /}"
+      if [[ ! "$check_sep" =~ ^={10,}$ ]]; then
+        local final_sep=$(printf '=%.0s' $(seq 1 $inner_width))
+        output_lines+=("# $final_sep #")
+      fi
+      
+      printf '%s\n' "${output_lines[@]}"
       ;;
       
-	'js_style')
-	  # JavaScript/TypeScript style: each line is a complete block comment
-	  local inner_width=$((BLOCK_WIDTH - 6))  # Account for "/* " and " */"
+    'js_style')
+      # JavaScript: /* line */ - each line separate
+      local inner_width=$((BLOCK_WIDTH - 6))  # "/* " and " */"
+      
+      local output_lines=()
+      while IFS= read -r line || [[ -n "$line" ]]; do
+        local trimmed="${line%"${line##*[![:space:]]}"}"
+        
+        if [[ "$trimmed" =~ ^[=\-]{10,}$ ]]; then
+          local sep=$(printf '=%.0s' $(seq 1 $inner_width))
+          output_lines+=("/* $sep */")
+        elif [[ -z "$trimmed" ]]; then
+          output_lines+=("/* $(printf '%*s' $inner_width '') */")
+        else
+          while IFS= read -r wrapped; do
+            local formatted=$(format_line "$wrapped" "$inner_width")
+            output_lines+=("/* $formatted */")
+          done < <(wrap_text_exact "$line" "$inner_width")
+        fi
+      done <<< "$content"
+      
+      # Add final separator
+      local last_line="${output_lines[-1]}"
+      local check_sep="${last_line//\/*/}"
+      check_sep="${check_sep// /}"
+      if [[ ! "$check_sep" =~ ^={10,}$ ]]; then
+        local final_sep=$(printf '=%.0s' $(seq 1 $inner_width))
+        output_lines+=("/* $final_sep */")
+      fi
+      
+      printf '%s\n' "${output_lines[@]}"
+      ;;
+      
+	'c_style')
+	  # CSS/C/Java: separate /* */ per line (like JS style but with full-width borders)
+	  local inner_width=$((BLOCK_WIDTH - 6))  # "/* " and " */"
 	  
-	  echo "$content" | while IFS= read -r line; do
-		# Check if this is a separator line (only = or - or spaces)
-		if [[ "$line" =~ ^[=\-[:space:]]+$ ]] || [[ "$line" =~ ^[=\-]+$ ]]; then
-		  # It's a separator - generate a full-width separator line
-		  local sep_content=$(printf '=%.0s' $(seq 1 $inner_width))
-		  printf "/* %s */\n" "$sep_content"
-		elif [[ -z "$line" ]]; then
-		  # Empty line
-		  printf "/* %*s */\n" $inner_width ""
+	  local output_lines=()
+	  
+	  while IFS= read -r line || [[ -n "$line" ]]; do
+		local trimmed="${line%"${line##*[![:space:]]}"}"
+		
+		if [[ "$trimmed" =~ ^[=\-]{10,}$ ]]; then
+		  local sep=$(printf '=%.0s' $(seq 1 $inner_width))
+		  output_lines+=("/* $sep */")
+		elif [[ -z "$trimmed" ]]; then
+		  output_lines+=("/* $(printf '%*s' $inner_width '') */")
 		else
-		  # Regular content line
-		  wrap_text_exact "$line" "$inner_width" | while IFS= read -r wrapped; do
-			local formatted
-			formatted=$(format_line "$wrapped" "$inner_width")
-			printf "/* %s */\n" "$formatted"
-		  done
+		  while IFS= read -r wrapped; do
+			local formatted=$(format_line "$wrapped" "$inner_width")
+			output_lines+=("/* $formatted */")
+		  done < <(wrap_text_exact "$line" "$inner_width")
 		fi
-	  done
+	  done <<< "$content"
 	  
-	  # Add final delimiter line
-	  local final_sep=$(printf '=%.0s' $(seq 1 $inner_width))
-	  printf "/* %s */\n" "$final_sep"
-	  ;;      
+	  # Add final separator
+	  local last_line="${output_lines[-1]}"
+	  local check_sep="${last_line//\/*/}"
+	  check_sep="${check_sep// /}"
+	  if [[ ! "$check_sep" =~ ^={10,}$ ]]; then
+		local final_sep=$(printf '=%.0s' $(seq 1 $inner_width))
+		output_lines+=("/* $final_sep */")
+	  fi
 	  
-    'c_style')
-      # C/C++/Java style: clean block comment
-      printf "/*%*s\n" $((BLOCK_WIDTH - 2)) ""
-      
-      echo "$content" | while IFS= read -r line; do
-        if [[ -z "$line" ]]; then
-          printf " * %*s *\n" $((inner_width - 2)) ""
-        else
-          wrap_text_exact "$line" $((inner_width - 2)) | while IFS= read -r wrapped; do
-            local formatted
-            formatted=$(format_line "$wrapped" $((inner_width - 2)))
-            printf " * %s *\n" "$formatted"
-          done
-        fi
-      done
-      
-      printf " %*s*/\n" $((BLOCK_WIDTH - 3)) ""
-      ;;
+	  printf '%s\n' "${output_lines[@]}"
+	  ;;
       
     'html_style')
-      # HTML/XML style: <!-- comment -->
-      local border=$(printf '=%.0s' $(seq 1 $((BLOCK_WIDTH - 5))))
+      # HTML: <!-- content -->
+      local inner_width=$((BLOCK_WIDTH - 6))  # "  " and "  "
       
-      echo "<!--${border}-->"
+      local output_lines=()
+      output_lines+=("<!--")
       
-      echo "$content" | while IFS= read -r line; do
-        if [[ -z "$line" ]]; then
-          printf "  %*s  \n" $((inner_width - 4)) ""
+      while IFS= read -r line || [[ -n "$line" ]]; do
+        local trimmed="${line%"${line##*[![:space:]]}"}"
+        
+        if [[ "$trimmed" =~ ^[=\-]{10,}$ ]]; then
+          local sep=$(printf '=%.0s' $(seq 1 $inner_width))
+          output_lines+=("  $sep  ")
+        elif [[ -z "$trimmed" ]]; then
+          output_lines+=("  $(printf '%*s' $inner_width '')  ")
         else
-          wrap_text_exact "$line" $((inner_width - 4)) | while IFS= read -r wrapped; do
-            local formatted
-            formatted=$(format_line "$wrapped" $((inner_width - 4)))
-            printf "  %s  \n" "$formatted"
-          done
+          while IFS= read -r wrapped; do
+            local formatted=$(format_line "$wrapped" "$inner_width")
+            output_lines+=("  $formatted  ")
+          done < <(wrap_text_exact "$line" "$inner_width")
         fi
-      done
+      done <<< "$content"
       
-      echo "<!--${border}-->"
+      # Add final separator if needed
+      local last_line="${output_lines[-1]}"
+      local check_sep="${last_line// /}"
+      if [[ ! "$check_sep" =~ ^={10,}$ ]] && [[ "$last_line" != "<!--" ]]; then
+        local final_sep=$(printf '=%.0s' $(seq 1 $inner_width))
+        output_lines+=("  $final_sep  ")
+      fi
+      
+      output_lines+=("-->")
+      
+      printf '%s\n' "${output_lines[@]}"
       ;;
       
     'lua_style')
-      # Lua style: --[[ comment --]]
-      printf "--[[%*s\n" $((BLOCK_WIDTH - 4)) ""
+      # Lua: --[[ content ]]
+      local inner_width=$((BLOCK_WIDTH - 6))  # " " and " " inside
       
-      echo "$content" | while IFS= read -r line; do
-        if [[ -z "$line" ]]; then
-          printf " %*s \n" $((inner_width - 2)) ""
+      local output_lines=()
+      output_lines+=("--[[")
+      
+      while IFS= read -r line || [[ -n "$line" ]]; do
+        local trimmed="${line%"${line##*[![:space:]]}"}"
+        
+        if [[ "$trimmed" =~ ^[=\-]{10,}$ ]]; then
+          local sep=$(printf '=%.0s' $(seq 1 $inner_width))
+          output_lines+=(" $sep ")
+        elif [[ -z "$trimmed" ]]; then
+          output_lines+=(" $(printf '%*s' $inner_width '') ")
         else
-          wrap_text_exact "$line" $((inner_width - 2)) | while IFS= read -r wrapped; do
-            local formatted
-            formatted=$(format_line "$wrapped" $((inner_width - 2)))
-            printf " %s \n" "$formatted"
-          done
+          while IFS= read -r wrapped; do
+            local formatted=$(format_line "$wrapped" "$inner_width")
+            output_lines+=(" $formatted ")
+          done < <(wrap_text_exact "$line" "$inner_width")
         fi
-      done
+      done <<< "$content"
       
-      printf "%*s]]\n" $((BLOCK_WIDTH - 2)) ""
+      # Add final separator if needed
+      local last_line="${output_lines[-1]}"
+      local check_sep="${last_line// /}"
+      if [[ ! "$check_sep" =~ ^={10,}$ ]] && [[ "$last_line" != "--[[" ]]; then
+        local final_sep=$(printf '=%.0s' $(seq 1 $inner_width))
+        output_lines+=(" $final_sep ")
+      fi
+      
+      output_lines+=("]]")
+      
+      printf '%s\n' "${output_lines[@]}"
       ;;
       
     'sql_style')
-      # SQL style: /* comment */
-      echo "/*"
+      # SQL: /* content */
+      local inner_width=$((BLOCK_WIDTH - 5))  # " * " and ""
       
-      echo "$content" | while IFS= read -r line; do
-        if [[ -z "$line" ]]; then
-          printf " * %*s\n" $((inner_width - 3)) ""
+      local output_lines=()
+      output_lines+=("/*")
+      
+      while IFS= read -r line || [[ -n "$line" ]]; do
+        local trimmed="${line%"${line##*[![:space:]]}"}"
+        
+        if [[ "$trimmed" =~ ^[=\-]{10,}$ ]]; then
+          local sep=$(printf '=%.0s' $(seq 1 $inner_width))
+          output_lines+=(" * $sep")
+        elif [[ -z "$trimmed" ]]; then
+          output_lines+=(" * $(printf '%*s' $inner_width '')")
         else
-          wrap_text_exact "$line" $((inner_width - 3)) | while IFS= read -r wrapped; do
-            local formatted
-            formatted=$(format_line "$wrapped" $((inner_width - 3)))
-            printf " * %s\n" "$formatted"
-          done
+          while IFS= read -r wrapped; do
+            local formatted=$(format_line "$wrapped" "$inner_width")
+            output_lines+=(" * $formatted")
+          done < <(wrap_text_exact "$line" "$inner_width")
         fi
-      done
+      done <<< "$content"
       
-      echo " */"
+      # Add final separator if needed
+      local last_line="${output_lines[-1]}"
+      local check_sep="${last_line//\* /}"
+      check_sep="${check_sep// /}"
+      if [[ ! "$check_sep" =~ ^={10,}$ ]] && [[ "$last_line" != "/*" ]]; then
+        local final_sep=$(printf '=%.0s' $(seq 1 $inner_width))
+        output_lines+=(" * $final_sep")
+      fi
+      
+      output_lines+=(" */")
+      
+      printf '%s\n' "${output_lines[@]}"
       ;;
       
     'vim_style')
-      # Vim style: " comment (single line only)
-      local flattened
-      flattened=$(echo "$content" | tr '\n' ' ' | sed 's/  */ /g')
+      # Vim: single line
+      local flattened=$(echo "$content" | tr '\n' ' ' | sed 's/  */ /g')
       if [[ ${#flattened} -gt $((BLOCK_WIDTH - 4)) ]]; then
         flattened="${flattened:0:$((BLOCK_WIDTH - 7))}..."
       fi
-      local formatted
-      formatted=$(format_line "$flattened" $((BLOCK_WIDTH - 4)))
+      local formatted=$(format_line "$flattened" $((BLOCK_WIDTH - 4)))
       echo "\" $formatted"
       ;;
       
@@ -418,29 +516,30 @@ generate_license_text() {
 
   local output=""
   case "$format" in
-    'text')
-      output+="================================================================================\n"
-      output+=" LICENSE INFORMATION\n"
-      output+="================================================================================\n"
-      output+=" Author(s): $author\n"
-      output+=" License Type: $license_type\n"
-      output+=" Copyright: $copyright $year $author\n"
-      output+=" Date Issued: $date_issued\n"
-      output+=" License Link: $license_link\n"
-      if [[ "$include_ai_role" == "true" && "$ai_used" == "true" && -n "$creator_role" ]]; then
-        output+=" AI Technique: $ai_technique\n"
-        output+=" Creator Role: $creator_role\n"
-      fi
-      if [[ "$fingerprint_hash" != "N/A" ]]; then
-        output+=" System ID: $fingerprint_hash\n"
-      fi
-      if [[ "$files_ext_targeted" != "N/A" ]]; then
-        output+=" Target Files: $files_ext_targeted\n"
-      fi
-      output+="================================================================================\n\n"
-      output+="$license_text\n"
-      [[ -n "$logo" ]] && output+="\n Logo: $logo\n"
-      ;;
+	'text')
+	  output+="================================================================================\n"
+	  output+=" LICENSE INFORMATION\n"
+	  output+="================================================================================\n"
+	  output+=" Author(s): $author\n"
+	  output+=" License Type: $license_type\n"
+	  output+=" Copyright: $copyright $year $author\n"
+	  output+=" Date Issued: $date_issued\n"
+	  output+=" License Link: $license_link\n"
+	  if [[ "$include_ai_role" == "true" && "$ai_used" == "true" && -n "$creator_role" ]]; then
+		output+=" AI Technique: $ai_technique\n"
+		output+=" Creator Role: $creator_role\n"
+	  fi
+	  if [[ "$fingerprint_hash" != "N/A" ]]; then
+		output+=" System ID: $fingerprint_hash\n"
+	  fi
+	  if [[ "$files_ext_targeted" != "N/A" ]]; then
+		output+=" Target Files: $files_ext_targeted\n"
+	  fi
+	  output+="================================================================================\n"
+	  output+="\n"
+	  output+="$license_text\n"
+	  [[ -n "$logo" ]] && output+="\n Logo: $logo\n"
+	  ;;
     'json')
       output=$(jq -n \
         --arg author "$author" \
@@ -697,7 +796,8 @@ interactive_mode() {
 apply_license() {
   local config_file="$1"
   local recursive="${2:-true}"
-  local target_dir="${3:-.}"
+  local target="${3:-.}"
+  local specific_file="${4:-}"
 
   if [[ ! -f "$config_file" ]]; then
     print_error "Configuration file not found: $config_file"
@@ -724,9 +824,17 @@ apply_license() {
     print_info "Advanced mode detected - AI role will be included in license headers"
   fi
 
+  # Check if target is a file or directory
+  if [[ -f "$target" ]]; then
+    specific_file="$target"
+    target=$(dirname "$target")
+    print_info "Single file mode: $specific_file"
+  else
+    print_info "Directory mode: $target (Recursive: $recursive)"
+  fi
+
   print_info "Applying license from $config_file"
   print_info "Target extensions: $files_ext_targeted"
-  print_info "Directory: $target_dir (Recursive: $recursive)"
 
   IFS=',' read -ra EXTENSIONS <<< "$files_ext_targeted"
   local total_count=0
@@ -735,7 +843,26 @@ apply_license() {
     ext=$(echo "$ext" | xargs)
     [[ -z "$ext" ]] && continue
 
+    # If specific file provided, check if it matches this extension
+    if [[ -n "$specific_file" ]]; then
+      if [[ ! "$specific_file" =~ \.$ext$ ]]; then
+        continue
+      fi
+      local files_to_process=("$specific_file")
+    else
+      local find_args=("$target" "-type" "f" "-name" "*.$ext")
+      [[ "$recursive" != "true" ]] && find_args=("$target" "-maxdepth" "1" "-type" "f" "-name" "*.$ext")
+      
+      local files_to_process=()
+      while IFS= read -r -d '' file; do
+        files_to_process+=("$file")
+      done < <(find "${find_args[@]}" -print0 2>/dev/null)
+    fi
+
+    [[ ${#files_to_process[@]} -eq 0 ]] && continue
+
     print_info "Processing *.$ext files..."
+
     local license_content
     license_content=$(generate_license_text "$config_file" "text" "$advanced_mode") || continue
 
@@ -743,22 +870,77 @@ apply_license() {
     comment_style=$(get_comment_style "$ext")
     formatted_header=$(format_comment_block "$comment_style" "$license_content")
 
-    local find_args=("$target_dir" "-type" "f" "-name" "*.$ext")
-    [[ "$recursive" != "true" ]] && find_args=("$target_dir" "-maxdepth" "1" "-type" "f" "-name" "*.$ext")
-
     local count=0
-    while IFS= read -r -d '' file; do
+    for file in "${files_to_process[@]}"; do
+      if [[ ! -f "$file" ]]; then
+        print_error "File not found: $file"
+        continue
+      fi
+
       if head -n 5 "$file" 2>/dev/null | grep -q "LICENSE INFORMATION"; then
         print_warning "Skipping (already has license): $file"
         continue
       fi
 
       local temp_file="$TEMP_DIR/$(basename "$file").tmp"
-      {
-        echo "$formatted_header"
-        echo ""
-        cat "$file"
-      } > "$temp_file"
+      
+      # Special handling for HTML files - insert between <html> and <head>
+      if [[ "$ext" == "html" ]] || [[ "$ext" == "htm" ]]; then
+        if grep -qi "<html" "$file"; then
+          # Create pattern: find <html>, then insert before <head> or next tag
+          awk -v header="$formatted_header" '
+            /<html[^>]*>/ {
+              print
+              # Read lines until we find <head> or non-empty content
+              while ((getline line) > 0) {
+                if (line ~ /<head/i || line ~ /<body/i || line ~ /<\?/ || line ~ /<![a-z]/i) {
+                  # Found target tag, insert header before it
+                  print header
+                  print line
+                  break
+                } else if (line ~ /^[[:space:]]*$/) {
+                  # Empty line, skip (don'"'"'t preserve extra newlines)
+                  continue
+                } else {
+                  # Other content, insert header and print this line
+                  print header
+                  print line
+                  break
+                }
+              }
+              next
+            }
+            { print }
+          ' "$file" > "$temp_file"
+        else
+          {
+            echo "$formatted_header"
+            cat "$file"
+          } > "$temp_file"
+        fi
+      else
+        # Standard handling for other files
+        local first_line
+        first_line=$(head -n 1 "$file")
+        
+        if [[ "$first_line" =~ ^#! ]]; then
+          # Shebang found - preserve it at top
+          {
+            echo "$first_line"
+            echo ""
+            echo "$formatted_header"
+            echo ""
+            tail -n +2 "$file"
+          } > "$temp_file"
+        else
+          # No shebang, prepend license
+          {
+            echo "$formatted_header"
+            echo ""
+            cat "$file"
+          } > "$temp_file"
+        fi
+      fi
 
       if mv "$temp_file" "$file"; then
         print_success "Licensed: $file"
@@ -767,7 +949,7 @@ apply_license() {
       else
         print_error "Failed: $file"
       fi
-    done < <(find "${find_args[@]}" -print0 2>/dev/null)
+    done
 
     print_success "Processed $count *.$ext files"
   done
